@@ -1,0 +1,50 @@
+expOr -> expAnd || expOr
+    | expAnd
+
+expAnd -> expEq && expAnd
+    | expEq
+
+expEq -> expComp == expEq
+    | expComp != expEq
+    | expComp
+
+expComp -> expAdd < expComp
+    | expAdd > expComp
+    | expAdd <= expComp
+    | expAdd >= expComp
+    | expAdd
+
+expAdd -> expMul + expAdd
+    | expMul - expAdd
+    | expMul
+
+expMul -> expCast * expMul
+    | expCast / expMul
+    | expCast % expMul
+    | expCast
+
+expCast -> (specific pointers)expCast
+    | expUn
+
+expUn -> &expUn
+    | *expUn
+    | !expUn
+    | -expUn
+    | sizeof expUn
+    | sizeof(specifier pointers)
+    | expIndex
+
+expIndex -> expIndex[expOr]
+    | term
+
+term -> id(expression-list)
+    | id()
+    | id
+    | num
+    | string
+    | (expOr)
+
+specific -> int | long | char
+
+pointers = * pointers
+    |
