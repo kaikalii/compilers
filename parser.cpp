@@ -7,13 +7,31 @@ using namespace std;
 
 #define DEBUG false
 
-token_t lookahead;
-string lexbuf;
+token_t lookahead, nextahead;
+string lexbuf, nextbuf;
+bool peeked = false;
 
 void match(token_t t) {
     if(DEBUG) cout << lookahead + 8 << " ?= " << t + 8 << ": " << (lookahead == t) << endl;
-    if(lookahead == t) lookahead = lexan(lexbuf);
-    else cout << "error" << endl;
+    if(!peeked) {
+        if(lookahead == t) lookahead = lexan(lexbuf);
+        else cout << "error" << endl;
+    }
+    else {
+        lookahead = nextahead;
+        lexbuf = nextbuf;
+        peeked = false;
+    }
+}
+
+token_t peek() {
+    if(peeked) {
+        return nextahead;
+    }
+    else {
+        nextahead = lexan(nextbuf);
+        peeked = true;
+    }
 }
 
 void pointers() {
