@@ -71,7 +71,9 @@ token_t lexan(std::string &lexbuf) {
                 last_char = input;
             }
         }
-        else if(isspace(input)) {}
+        else if(isspace(input)) {
+            if(input == '\n') lineno++;
+        }
         // Operators (and comments)
         else {
             lexbuf.push_back(input);

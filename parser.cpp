@@ -1,37 +1,38 @@
 #include <string>
 #include <iostream>
+#include <assert.h>
 
 #include "lexer.h"
 
 using namespace std;
 
-#define DEBUG false
-
-token_t lookahead, nextahead;
+token_t lookahead, nexttoken;
 string lexbuf, nextbuf;
 bool peeked = false;
+int lineno = 1;
 
 void match(token_t t) {
-    if(DEBUG) cout << lookahead + 8 << " ?= " << t + 8 << ": " << (lookahead == t) << endl;
-    if(!peeked) {
-        if(lookahead == t) lookahead = lexan(lexbuf);
-        else cout << "error" << endl;
-    }
-    else {
-        lookahead = nextahead;
+    if(peeked) {
+        lookahead = nexttoken;
         lexbuf = nextbuf;
         peeked = false;
+    }
+    else {
+        if(lookahead == t) lookahead = lexan(lexbuf);
+        else {
+            cout << "error on line: " << lineno << endl;
+            cout << "expected token " << t + 8 << ", found token " << lookahead + 8 << endl;
+            assert(lookahead == t);
+        }
     }
 }
 
 token_t peek() {
-    if(peeked) {
-        return nextahead;
-    }
-    else {
-        nextahead = lexan(nextbuf);
+    if(!peeked) {
+        nexttoken = lexan(nextbuf);
         peeked = true;
     }
+    return nexttoken;
 }
 
 void pointers() {
@@ -48,15 +49,22 @@ void specifier() {
     else if(lookahead == CHAR) match(CHAR);
 }
 
-void expOr();
+void expOr(), expression();
 
 void term() {
-    // impl expression-list
     if(lookahead == ID) {
         match(ID);
         if(lookahead == LPAREN) {
             match(LPAREN);
-            match(RPAREN);
+            if(lookahead == RPAREN) match(RPAREN);
+            else {
+                expression();
+                while(lookahead == COMMA) {
+                    match(COMMA);
+                    expression();
+                }
+                match(RPAREN);
+            }
         }
     }
     else if(lookahead == NUM) match(NUM);
@@ -94,22 +102,17 @@ void expUn() {
         expUn();
         cout << "not" << endl;
     }
-    else if(lookahead == NEG) {
-        match(NEG);
+    else if(lookahead == SUB) {
+        match(SUB);
         expUn();
         cout << "neg" << endl;
     }
     else if(lookahead == SIZEOF) {
         match(SIZEOF);
-        if(lookahead == LPAREN) {
+        if(lookahead == LPAREN && isSpecifier(peek())) {
             match(LPAREN);
-            if(isSpecifier(lookahead)) {
-                specifier();
-                pointers();
-            }
-            else {
-                expUn();
-            }
+            specifier();
+            pointers();
             match(RPAREN);
         }
         else expUn();
@@ -121,133 +124,152 @@ void expUn() {
 }
 
 void expCast() {
-    if(lookahead == LPAREN) {
+    if(lookahead == LPAREN && isSpecifier(peek())) {
         match(LPAREN);
-        bool sp = false;
-        if(isSpecifier(lookahead)) {
-            specifier();
-            pointers();
-            sp = true;
-        }
-        else {
-            expOr();
-        }
+        specifier();
+        pointers();
         match(RPAREN);
-        if(sp) {
-            expUn();
-            cout << "cast" << endl;
-        }
+        expCast();
+        cout << "cast" << endl;
     }
-    else expUn();
+    expUn();
 }
 
 void expMul() {
     expCast();
-    if(lookahead == STAR) {
-        match(STAR);
-        expMul();
-        cout << "mul" << endl;
-    }
-    else if(lookahead == DIV) {
-        match(DIV);
-        expMul();
-        cout << "div" << endl;
-    }
-    else if(lookahead == REM) {
-        match(REM);
-        expMul();
-        cout << "rem" << endl;
+    while(1) {
+        if(lookahead == STAR) {
+            match(STAR);
+            expCast();
+            cout << "mul" << endl;
+        }
+        else if(lookahead == DIV) {
+            match(DIV);
+            expCast();
+            cout << "div" << endl;
+        }
+        else if(lookahead == REM) {
+            match(REM);
+            expCast();
+            cout << "rem" << endl;
+        }
+        else break;
     }
 }
 
 void expAdd() {
     expMul();
-    if(lookahead == ADD) {
-        match(ADD);
-        expAdd();
-        cout << "add" << endl;
-    }
-    else if(lookahead == SUB) {
-        match(SUB);
-        expAdd();
-        cout << "sub" << endl;
+    while(1) {
+        if(lookahead == ADD) {
+            match(ADD);
+            expMul();
+            cout << "add" << endl;
+        }
+        else if(lookahead == SUB) {
+            match(SUB);
+            expMul();
+            cout << "sub" << endl;
+        }
+        else break;
     }
 }
 
 void expComp() {
     expAdd();
-    if(lookahead == LTN) {
-        match(LTN);
-        expComp();
-        cout << "ltn" << endl;
-    }
-    else if(lookahead == GTN) {
-        match(GTN);
-        expComp();
-        cout << "gtn" << endl;
-    }
-    else if(lookahead == LEQ) {
-        match(LEQ);
-        expComp();
-        cout << "leq" << endl;
-    }
-    else if(lookahead == GEQ) {
-        match(GEQ);
-        expComp();
-        cout << "geq" << endl;
+    while(1) {
+        if(lookahead == LTN) {
+            match(LTN);
+            expAdd();
+            cout << "ltn" << endl;
+        }
+        else if(lookahead == GTN) {
+            match(GTN);
+            expAdd();
+            cout << "gtn" << endl;
+        }
+        else if(lookahead == LEQ) {
+            match(LEQ);
+            expAdd();
+            cout << "leq" << endl;
+        }
+        else if(lookahead == GEQ) {
+            match(GEQ);
+            expAdd();
+            cout << "geq" << endl;
+        }
+        else break;
     }
 }
 
 void expEql() {
     expComp();
-    if(lookahead == EQL) {
-        match(EQL);
-        expEql();
-        cout << "eql" << endl;
-    }
-    else if(lookahead == NEQ) {
-        match(NEQ);
-        expEql();
-        cout << "neq" << endl;
+    while(1) {
+        if(lookahead == EQL) {
+            match(EQL);
+            expComp();
+            cout << "eql" << endl;
+        }
+        else if(lookahead == NEQ) {
+            match(NEQ);
+            expComp();
+            cout << "neq" << endl;
+        }
+        else break;
     }
 }
 
 void expAnd() {
     expEql();
-    if(lookahead == AND) {
-        match(AND);
-        expAnd();
-        cout << "and" << endl;
+    while(1) {
+        if(lookahead == AND) {
+            match(AND);
+            expEql();
+            cout << "and" << endl;
+        }
+        else break;
     }
 }
 
 void expOr() {
     expAnd();
-    if(lookahead == OR) {
-        match(OR);
-        expOr();
-        cout << "or" << endl;
+    while(1) {
+        if(lookahead == OR) {
+            match(OR);
+            expAnd();
+            cout << "or" << endl;
+        }
+        else break;
     }
 }
 
 void expression() {
-    if(DEBUG) cout << "start expression" << endl;
+    #ifdef DEBUG
+    cout << "start expression" << endl;
+    #endif
     expOr();
-    if(DEBUG) cout << "expression" << endl;
+    #ifdef DEBUG
+    cout << "expression" << endl;
+    #endif
 }
 
 void expList() {
-    if(DEBUG) cout << "start expression-list" << endl;
+    #ifdef DEBUG
+    cout << "start expression-list" << endl;
+    #endif
     expression();
     while(lookahead == COMMA) {
         match(COMMA);
         expOr();
     }
-    if(DEBUG) cout << "expression-list" << endl;
+    #ifdef DEBUG
+    cout << "expression-list" << endl;
+    #endif
 }
 
 void declarator() {
-    if(DEBUG) cout << "start declarator" << endl;
+    #ifdef DEBUG
+    cout << "start declarator" << endl;
+    #endif
     pointers();
     if(lookahead == ID) {
         match(ID);
@@ -257,41 +279,57 @@ void declarator() {
             match(RBRACKET);
         }
     }
-    if(DEBUG) cout << "declarator" << endl;
+    #ifdef DEBUG
+    cout << "declarator" << endl;
+    #endif
 }
 
 void declaratorList() {
-    if(DEBUG) cout << "start declarator-list" << endl;
+    #ifdef DEBUG
+    cout << "start declarator-list" << endl;
+    #endif
     declarator();
     while(lookahead == COMMA) {
         match(COMMA);
         declarator();
     }
-    if(DEBUG) cout << "declarator-list" << endl;
+    #ifdef DEBUG
+    cout << "declarator-list" << endl;
+    #endif
 }
 
 void declaration() {
-    if(DEBUG) cout << "start declaration" << endl;
+    #ifdef DEBUG
+    cout << "start declaration" << endl;
+    #endif
     if(isSpecifier(lookahead)) {
         specifier();
         declaratorList();
         match(SEMICOLON);
     }
-    if(DEBUG) cout << "declaration" << endl;
+    #ifdef DEBUG
+    cout << "declaration" << endl;
+    #endif
 }
 
 void declarations() {
-    if(DEBUG) cout << "start declarations" << endl;
+    #ifdef DEBUG
+    cout << "start declarations" << endl;
+    #endif
     while(isSpecifier(lookahead)) {
         declaration();
     }
-    if(DEBUG) cout << "declarations" << endl;
+    #ifdef DEBUG
+    cout << "declarations" << endl;
+    #endif
 }
 
 void statements();
 
 void statement() {
-    if(DEBUG) cout << "start statement" << endl;
+    #ifdef DEBUG
+    cout << "start statement" << endl;
+    #endif
     if(lookahead == LCURLY) {
         match(LCURLY);
         declarations();
@@ -329,15 +367,21 @@ void statement() {
         }
         match(SEMICOLON);
     }
-    if(DEBUG) cout << "statement" << endl;
+    #ifdef DEBUG
+    cout << "statement" << endl;
+    #endif
 }
 
 void statements() {
-    if(DEBUG) cout << "start statements" << endl;
+    #ifdef DEBUG
+    cout << "start statements" << endl;
+    #endif
     while(lookahead != RCURLY) {
         statement();
     }
-    if(DEBUG) cout << "statement" << endl;
+    #ifdef DEBUG
+    cout << "statement" << endl;
+    #endif
 }
 
 void parameter() {
@@ -365,26 +409,66 @@ void parameters() {
     }
 }
 
-void functionDefinition() {
-    if(isSpecifier(lookahead)) {
-        specifier();
-        pointers();
-        match(ID);
+void globalDeclarator() {
+    pointers();
+    match(ID);
+    if(lookahead == LPAREN) {
         match(LPAREN);
-        parameters();
         match(RPAREN);
-        match(LCURLY);
-        declarations();
-        statements();
-        match(RCURLY);
     }
+    else if(lookahead == LBRACKET) {
+        match(LBRACKET);
+        match(NUM);
+        match(RBRACKET);
+    }
+}
 
+void translationUnit() {
+    specifier();
+    pointers();
+    match(ID);
+    if(lookahead == LPAREN) {
+        match(LPAREN);
+        if(lookahead != RPAREN) {
+            parameters();
+            match(RPAREN);
+            match(LCURLY);
+            declarations();
+            statements();
+            match(RCURLY);
+        }
+        else {
+            match(RPAREN);
+            while(lookahead == COMMA) {
+                match(COMMA);
+                globalDeclarator();
+            }
+            match(SEMICOLON);
+        }
+    }
+    else if(lookahead == LBRACKET) {
+        match(LBRACKET);
+        match(NUM);
+        match(RBRACKET);
+        while(lookahead == COMMA) {
+            match(COMMA);
+            globalDeclarator();
+        }
+        match(SEMICOLON);
+    }
+    else {
+        while(lookahead == COMMA) {
+            match(COMMA);
+            globalDeclarator();
+        }
+        match(SEMICOLON);
+    }
 }
 
 int main() {
     lookahead = lexan(lexbuf);
-    // while(lookahead != DONE) {
-        functionDefinition();
-    // }
+    while(lookahead != DONE) {
+        translationUnit();
+    }
     return 0;
 }
