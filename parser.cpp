@@ -35,18 +35,25 @@ token_t peek() {
     return nexttoken;
 }
 
-void pointers() {
-    while(lookahead == STAR) match(STAR);
+unsigned pointers() {
+    unsigned count = 0;
+    while(lookahead == STAR) {
+        match(STAR);
+        count++;
+    }
+    return count;
 }
 
 bool isSpecifier(token_t t) {
     return t == INT || t == LONG || t == CHAR;
 }
 
-void specifier() {
+token_t specifier() {
+    token_t temp = lookahead;
     if(lookahead == INT) match(INT);
     else if(lookahead == LONG) match(LONG);
     else if(lookahead == CHAR) match(CHAR);
+    return temp;
 }
 
 void expOr(), expression();
@@ -266,19 +273,23 @@ void expList() {
     #endif
 }
 
-void declarator() {
+void declarator(token_t typespec) {
     #ifdef DEBUG
     cout << "start declarator" << endl;
     #endif
-    pointers();
+
+    unsigned indirection = pointers();
     if(lookahead == ID) {
         match(ID);
         if(lookahead == LBRACKET) {
             match(LBRACKET);
             match(NUM);
             match(RBRACKET);
+            cout << "(" << typespec + 8 << ", ARRAY" << endl;
         }
+        else cout << "(" << typespec + 8 << ", SCALAR" << endl;
     }
+
     #ifdef DEBUG
     cout << "declarator" << endl;
     #endif
@@ -288,11 +299,13 @@ void declaratorList() {
     #ifdef DEBUG
     cout << "start declarator-list" << endl;
     #endif
+
     declarator();
     while(lookahead == COMMA) {
         match(COMMA);
         declarator();
     }
+
     #ifdef DEBUG
     cout << "declarator-list" << endl;
     #endif
@@ -302,11 +315,11 @@ void declaration() {
     #ifdef DEBUG
     cout << "start declaration" << endl;
     #endif
-    if(isSpecifier(lookahead)) {
-        specifier();
-        declaratorList();
-        match(SEMICOLON);
-    }
+
+    unsigned indirection = specifier();
+    declaratorList();
+    match(SEMICOLON);
+
     #ifdef DEBUG
     cout << "declaration" << endl;
     #endif
