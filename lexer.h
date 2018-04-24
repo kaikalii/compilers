@@ -1,17 +1,80 @@
-/*
- * File:	lexer.h
- *
- * Description:	This file contains the public function and variable
- *		declarations for the lexical analyzer for Simple C.
- */
+#ifndef LEXER_H
+#define LEXER_H
 
-# ifndef LEXER_H
-# define LEXER_H
-# include <string>
+#include <string>
 
 extern int lineno, numerrors;
 
-int lexan(std::string &lexbuf);
-void report(const std::string &str, const std::string &arg = "");
+enum token_t {
+    AUTO = 1,
+    BREAK,
+    CASE,
+    CHAR,
+    CONST,
+    CONTINUE,
+    DEFAULT,
+    DO,
+    DOUBLE,
+    ELSE,
+    ENUM,
+    EXTERN,
+    FOR,
+    GOTO,
+    IF,
+    INT,
+    LONG,
+    REGISTER,
+    RETURN,
+    SHORT,
+    SIGNED,
+    SIZEOF,
+    STATIC,
+    STRUCT,
+    SWITCH,
+    TYPEDEF,
+    UNION,
+    UNSIGNED,
+    VOID,
+    VOLATILE,
+    WHILE,
+    ID,
+    DONE,
+    STRING,
+    NUM,
+    INDEX,
+    ADDR,
+    DEREF,
+    NOT,
+    NEG,
+    CAST,
+    MUL,
+    DIV,
+    REM,
+    ADD,
+    SUB,
+    LTN,
+    GTN,
+    LEQ,
+    GEQ,
+    EQL,
+    NEQ,
+    AND,
+    OR,
+    STAR,
+    LPAREN,
+    RPAREN,
+    LCURLY,
+    RCURLY,
+    LBRACKET,
+    RBRACKET,
+    SEMICOLON,
+    COLON,
+    PERIOD,
+    COMMA,
+    ARROW,
+    ASSIGN,
+};
 
-# endif /* LEXER_H */
+token_t lexan(std::string &lexbuf);
+
+#endif
