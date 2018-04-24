@@ -10,13 +10,14 @@
 # ifndef TOKENS_H
 # define TOKENS_H
 
-enum {
+enum
+{
     ASSIGN = '=', LTN = '<', GTN = '>', PLUS = '+', MINUS = '-',
-    STAR = '*', DIV = '/', REM = '%', ADDR = '&', NOT = '!', DOT = '.',
+    STAR   = '*', DIV = '/', REM = '%', ADDR = '&', NOT = '!', DOT = '.',
     LPAREN = '(', RPAREN = ')', LBRACK = '[', RBRACK = ']',
     LBRACE = '{', RBRACE = '}', SEMI = ';', COLON = ':', COMMA = ',',
 
-    AUTO = 256, BREAK, CASE, CHAR, CONST, CONTINUE, DEFAULT, DO, DOUBLE,
+    AUTO   = 256, BREAK, CASE, CHAR, CONST, CONTINUE, DEFAULT, DO, DOUBLE,
     ELSE, ENUM, EXTERN, FLOAT, FOR, GOTO, IF, INT, LONG, REGISTER,
     RETURN, SHORT, SIGNED, SIZEOF, STATIC, STRUCT, SWITCH, TYPEDEF,
     UNION, UNSIGNED, VOID, VOLATILE, WHILE,

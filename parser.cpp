@@ -6,19 +6,18 @@
  *		Simple C.
  */
 
-# include <cstdlib>
-# include <iostream>
-# include "tokens.h"
-# include "lexer.h"
+#include "lexer.h"
+#include "tokens.h"
+#include <cstdlib>
+#include <iostream>
 
 using namespace std;
 
-static int lookahead, nexttoken;
+static int	  lookahead, nexttoken;
 static string lexbuf, nextbuf;
 
 static void expression(), castExpression();
 static void statement();
-
 
 /*
  * Function:	error
@@ -26,16 +25,14 @@ static void statement();
  * Description:	Report a syntax error to standard error.
  */
 
-static void error()
-{
+static void error(){
     if (lookahead == DONE)
-	report("syntax error at end of file");
+        report("syntax error at end of file");
     else
-	report("syntax error at '%s'", lexbuf);
+        report("syntax error at '%s'", lexbuf);
 
     exit(EXIT_FAILURE);
 }
-
 
 /*
  * Function:	match
@@ -45,19 +42,17 @@ static void error()
  *		program since our parser does not do error recovery.
  */
 
-static void match(int t)
-{
+static void match(int t){
     if (lookahead != t)
-	error();
+        error();
 
     if (nexttoken) {
-	lookahead = nexttoken;
-	lexbuf = nextbuf;
-	nexttoken = 0;
+        lookahead = nexttoken;
+        lexbuf	  = nextbuf;
+        nexttoken = 0;
     } else
-	lookahead = lexan(lexbuf);
+        lookahead = lexan(lexbuf);
 }
-
 
 /*
  * Function:	peek
@@ -66,14 +61,12 @@ static void match(int t)
  *		that match() will later return it.
  */
 
-static int peek()
-{
+static int peek(){
     if (!nexttoken)
-	nexttoken = lexan(nextbuf);
+        nexttoken = lexan(nextbuf);
 
     return nexttoken;
 }
-
 
 /*
  * Function:	isSpecifier
@@ -81,11 +74,9 @@ static int peek()
  * Description:	Return whether the given token is a type specifier.
  */
 
-static bool isSpecifier(int token)
-{
+static bool isSpecifier(int token){
     return token == CHAR || token == INT || token == LONG;
 }
-
 
 /*
  * Function:	specifier
@@ -98,14 +89,12 @@ static bool isSpecifier(int token)
  *		  long
  */
 
-static void specifier()
-{
+static void specifier(){
     if (isSpecifier(lookahead))
-	match(lookahead);
+        match(lookahead);
     else
-	error();
+        error();
 }
-
 
 /*
  * Function:	pointers
@@ -117,12 +106,10 @@ static void specifier()
  *		  * pointers
  */
 
-static void pointers()
-{
+static void pointers(){
     while (lookahead == '*')
-	match('*');
+        match('*');
 }
-
 
 /*
  * Function:	declarator
@@ -135,18 +122,16 @@ static void pointers()
  *		  pointers identifier [ num ]
  */
 
-static void declarator()
-{
+static void declarator(){
     pointers();
     match(ID);
 
     if (lookahead == '[') {
-	match('[');
-	match(NUM);
-	match(']');
+        match('[');
+        match(NUM);
+        match(']');
     }
 }
-
 
 /*
  * Function:	declaration
@@ -163,19 +148,17 @@ static void declarator()
  *		  declarator , declarator-list
  */
 
-static void declaration()
-{
+static void declaration(){
     specifier();
     declarator();
 
     while (lookahead == ',') {
-	match(',');
-	declarator();
+        match(',');
+        declarator();
     }
 
     match(';');
 }
-
 
 /*
  * Function:	declarations
@@ -187,12 +170,10 @@ static void declaration()
  *		  declaration declarations
  */
 
-static void declarations()
-{
+static void declarations(){
     while (isSpecifier(lookahead))
-	declaration();
+        declaration();
 }
-
 
 /*
  * Function:	primaryExpression
@@ -212,41 +193,35 @@ static void declarations()
  *		  expression , expression-list
  */
 
-static void primaryExpression()
-{
+static void primaryExpression(){
     if (lookahead == '(') {
-	match('(');
-	expression();
-	match(')');
-
+        match('(');
+        expression();
+        match(')');
     } else if (lookahead == STRING) {
-	match(STRING);
-
+        match(STRING);
     } else if (lookahead == NUM) {
-	match(NUM);
-
+        match(NUM);
     } else if (lookahead == ID) {
-	match(ID);
+        match(ID);
 
-	if (lookahead == '(') {
-	    match('(');
+        if (lookahead == '(') {
+            match('(');
 
-	    if (lookahead != ')') {
-		expression();
+            if (lookahead != ')') {
+                expression();
 
-		while (lookahead == ',') {
-		    match(',');
-		    expression();
-		}
-	    }
+                while (lookahead == ',') {
+                    match(',');
+                    expression();
+                }
+            }
 
-	    match(')');
-	}
-
+            match(')');
+        }
     } else
-	error();
+        error();
 }
-
 
 /*
  * Function:	postfixExpression
@@ -258,18 +233,16 @@ static void primaryExpression()
  *		  postfix-expression [ expression ]
  */
 
-static void postfixExpression()
-{
+static void postfixExpression(){
     primaryExpression();
 
     while (lookahead == '[') {
-	match('[');
-	expression();
-	match(']');
-	cout << "index" << endl;
+        match('[');
+        expression();
+        match(']');
+        cout << "index" << endl;
     }
 }
-
 
 /*
  * Function:	unaryExpression
@@ -286,45 +259,38 @@ static void postfixExpression()
  *		  sizeof ( specifier pointers )
  */
 
-static void unaryExpression()
-{
+static void unaryExpression(){
     if (lookahead == '!') {
-	match('!');
-	castExpression();
-	cout << "not" << endl;
-
+        match('!');
+        castExpression();
+        cout << "not" << endl;
     } else if (lookahead == '-') {
-	match('-');
-	castExpression();
-	cout << "neg" << endl;
-
+        match('-');
+        castExpression();
+        cout << "neg" << endl;
     } else if (lookahead == '*') {
-	match('*');
-	castExpression();
-	cout << "deref" << endl;
-
+        match('*');
+        castExpression();
+        cout << "deref" << endl;
     } else if (lookahead == '&') {
-	match('&');
-	castExpression();
-	cout << "addr" << endl;
-
+        match('&');
+        castExpression();
+        cout << "addr" << endl;
     } else if (lookahead == SIZEOF) {
-	match(SIZEOF);
+        match(SIZEOF);
 
-	if (lookahead == '(' && isSpecifier(peek())) {
-	    match('(');
-	    specifier();
-	    pointers();
-	    match(')');
-	} else
-	    unaryExpression();
+        if (lookahead == '(' && isSpecifier(peek())) {
+            match('(');
+            specifier();
+            pointers();
+            match(')');
+        } else
+            unaryExpression();
 
-	cout << "sizeof" << endl;
-
+        cout << "sizeof" << endl;
     } else
-	postfixExpression();
+        postfixExpression();
 }
-
 
 /*
  * Function:	castExpression
@@ -338,20 +304,17 @@ static void unaryExpression()
  *		  ( specifier pointers ) cast-expression
  */
 
-static void castExpression()
-{
+static void castExpression() {
     if (lookahead == '(' && isSpecifier(peek())) {
-	match('(');
-	specifier();
-	pointers();
-	match(')');
-	castExpression();
-	cout << "cast" << endl;
-
+        match('(');
+        specifier();
+        pointers();
+        match(')');
+        castExpression();
+        cout << "cast" << endl;
     } else
-	unaryExpression();
+        unaryExpression();
 }
-
 
 /*
  * Function:	multiplicativeExpression
@@ -365,31 +328,26 @@ static void castExpression()
  *		  multiplicative-expression % cast-expression
  */
 
-static void multiplicativeExpression()
-{
+static void multiplicativeExpression(){
     castExpression();
 
     while (1) {
-	if (lookahead == '*') {
-	    match('*');
-	    castExpression();
-	    cout << "mul" << endl;
-
-	} else if (lookahead == '/') {
-	    match('/');
-	    castExpression();
-	    cout << "div" << endl;
-
-	} else if (lookahead == '%') {
-	    match('%');
-	    castExpression();
-	    cout << "rem" << endl;
-
-	} else
-	    break;
+        if (lookahead == '*') {
+            match('*');
+            castExpression();
+            cout << "mul" << endl;
+        } else if (lookahead == '/') {
+            match('/');
+            castExpression();
+            cout << "div" << endl;
+        } else if (lookahead == '%') {
+            match('%');
+            castExpression();
+            cout << "rem" << endl;
+        } else
+            break;
     }
 }
-
 
 /*
  * Function:	additiveExpression
@@ -402,26 +360,22 @@ static void multiplicativeExpression()
  *		  additive-expression - multiplicative-expression
  */
 
-static void additiveExpression()
-{
+static void additiveExpression(){
     multiplicativeExpression();
 
     while (1) {
-	if (lookahead == '+') {
-	    match('+');
-	    multiplicativeExpression();
-	    cout << "add" << endl;
-
-	} else if (lookahead == '-') {
-	    match('-');
-	    multiplicativeExpression();
-	    cout << "sub" << endl;
-
-	} else
-	    break;
+        if (lookahead == '+') {
+            match('+');
+            multiplicativeExpression();
+            cout << "add" << endl;
+        } else if (lookahead == '-') {
+            match('-');
+            multiplicativeExpression();
+            cout << "sub" << endl;
+        } else
+            break;
     }
 }
-
 
 /*
  * Function:	relationalExpression
@@ -438,36 +392,30 @@ static void additiveExpression()
  *		  relational-expression >= additive-expression
  */
 
-static void relationalExpression()
-{
+static void relationalExpression(){
     additiveExpression();
 
     while (1) {
-	if (lookahead == '<') {
-	    match('<');
-	    additiveExpression();
-	    cout << "ltn" << endl;
-
-	} else if (lookahead == '>') {
-	    match('>');
-	    additiveExpression();
-	    cout << "gtn" << endl;
-
-	} else if (lookahead == LEQ) {
-	    match(LEQ);
-	    additiveExpression();
-	    cout << "leq" << endl;
-
-	} else if (lookahead == GEQ) {
-	    match(GEQ);
-	    additiveExpression();
-	    cout << "geq" << endl;
-
-	} else
-	    break;
+        if (lookahead == '<') {
+            match('<');
+            additiveExpression();
+            cout << "ltn" << endl;
+        } else if (lookahead == '>') {
+            match('>');
+            additiveExpression();
+            cout << "gtn" << endl;
+        } else if (lookahead == LEQ) {
+            match(LEQ);
+            additiveExpression();
+            cout << "leq" << endl;
+        } else if (lookahead == GEQ) {
+            match(GEQ);
+            additiveExpression();
+            cout << "geq" << endl;
+        } else
+            break;
     }
 }
-
 
 /*
  * Function:	equalityExpression
@@ -480,26 +428,22 @@ static void relationalExpression()
  *		  equality-expression != relational-expression
  */
 
-static void equalityExpression()
-{
+static void equalityExpression(){
     relationalExpression();
 
     while (1) {
-	if (lookahead == EQL) {
-	    match(EQL);
-	    relationalExpression();
-	    cout << "eql" << endl;
-
-	} else if (lookahead == NEQ) {
-	    match(NEQ);
-	    relationalExpression();
-	    cout << "neq" << endl;
-
-	} else
-	    break;
+        if (lookahead == EQL) {
+            match(EQL);
+            relationalExpression();
+            cout << "eql" << endl;
+        } else if (lookahead == NEQ) {
+            match(NEQ);
+            relationalExpression();
+            cout << "neq" << endl;
+        } else
+            break;
     }
 }
-
 
 /*
  * Function:	logicalAndExpression
@@ -512,17 +456,15 @@ static void equalityExpression()
  *		  logical-and-expression && equality-expression
  */
 
-static void logicalAndExpression()
-{
+static void logicalAndExpression(){
     equalityExpression();
 
     while (lookahead == AND) {
-	match(AND);
-	equalityExpression();
-	cout << "and" << endl;
+        match(AND);
+        equalityExpression();
+        cout << "and" << endl;
     }
 }
-
 
 /*
  * Function:	expression
@@ -536,17 +478,15 @@ static void logicalAndExpression()
  *		  expression || logical-and-expression
  */
 
-static void expression()
-{
+static void expression(){
     logicalAndExpression();
 
     while (lookahead == OR) {
-	match(OR);
-	logicalAndExpression();
-	cout << "or" << endl;
+        match(OR);
+        logicalAndExpression();
+        cout << "or" << endl;
     }
 }
-
 
 /*
  * Function:	statements
@@ -561,12 +501,10 @@ static void expression()
  *		  statement statements
  */
 
-static void statements()
-{
+static void statements(){
     while (lookahead != '}')
-	statement();
+        statement();
 }
-
 
 /*
  * Function:	statement
@@ -584,50 +522,46 @@ static void statements()
  *		  expression ;
  */
 
-static void statement()
-{
+static void statement(){
     if (lookahead == '{') {
-	match('{');
-	declarations();
-	statements();
-	match('}');
-
+        cout << "open block scope" << endl;
+        match('{');
+        declarations();
+        statements();
+        match('}');
+        cout << "close block scope" << endl;
     } else if (lookahead == RETURN) {
-	match(RETURN);
-	expression();
-	match(';');
-
+        match(RETURN);
+        expression();
+        match(';');
     } else if (lookahead == WHILE) {
-	match(WHILE);
-	match('(');
-	expression();
-	match(')');
-	statement();
-
+        match(WHILE);
+        match('(');
+        expression();
+        match(')');
+        statement();
     } else if (lookahead == IF) {
-	match(IF);
-	match('(');
-	expression();
-	match(')');
-	statement();
+        match(IF);
+        match('(');
+        expression();
+        match(')');
+        statement();
 
-	if (lookahead == ELSE) {
-	    match(ELSE);
-	    statement();
-	}
-
+        if (lookahead == ELSE) {
+            match(ELSE);
+            statement();
+        }
     } else {
-	expression();
+        expression();
 
-	if (lookahead == '=') {
-	    match('=');
-	    expression();
-	}
+        if (lookahead == '=') {
+            match('=');
+            expression();
+        }
 
-	match(';');
+        match(';');
     }
 }
-
 
 /*
  * Function:	parameter
@@ -639,13 +573,11 @@ static void statement()
  *		  specifier pointers ID
  */
 
-static void parameter()
-{
+static void parameter(){
     specifier();
     pointers();
     match(ID);
 }
-
 
 /*
  * Function:	parameters
@@ -662,21 +594,19 @@ static void parameter()
  *		  parameter , parameter-list
  */
 
-static void parameters()
-{
+static void parameters(){
     if (lookahead == VOID)
-	match(VOID);
+        match(VOID);
 
-    else {
-	parameter();
+    else{
+        parameter();
 
-	while (lookahead == ',') {
-	    match(',');
-	    parameter();
-	}
+        while (lookahead == ',') {
+            match(',');
+            parameter();
+        }
     }
 }
-
 
 /*
  * Function:	globalDeclarator
@@ -691,88 +621,80 @@ static void parameters()
  *		  pointers identifier [ num ]
  */
 
-static void globalDeclarator()
-{
+static void globalDeclarator(){
     pointers();
     match(ID);
 
     if (lookahead == '(') {
-	match('(');
-	match(')');
-
+        match('(');
+        match(')');
     } else if (lookahead == '[') {
-	match('[');
-	match(NUM);
-	match(']');
+        match('[');
+        match(NUM);
+        match(']');
     }
 }
-
 
 /*
  * Function:	remainingDeclarators
  *
  * Description:	Parse any remaining global declarators after the first.
  *
- * 		remaining-declarators
- * 		  ;
- * 		  , global-declarator remaining-declarators
+ *       remaining-declarators
+ *         ;
+ *         , global-declarator remaining-declarators
  */
 
-static void remainingDeclarators()
-{
+static void remainingDeclarators(){
     while (lookahead == ',') {
-	match(',');
-	globalDeclarator();
+        match(',');
+        globalDeclarator();
     }
 
     match(';');
 }
-
 
 /*
  * Function:	globalOrFunction
  *
  * Description:	Parse a global declaration or function definition.
  *
- * 		global-or-function:
- * 		  specifier pointers identifier remaining-decls
- * 		  specifier pointers identifier [ num ] remaining-decls
- * 		  specifier pointers identifier ( ) remaining-decls 
- * 		  specifier pointers identifier ( parameters ) { ... }
+ *       global-or-function:
+ *         specifier pointers identifier remaining-decls
+ *         specifier pointers identifier [ num ] remaining-decls
+ *         specifier pointers identifier ( ) remaining-decls
+ *         specifier pointers identifier ( parameters ) { ... }
  */
 
-static void globalOrFunction()
-{
+static void globalOrFunction(){
     specifier();
     pointers();
     match(ID);
 
     if (lookahead == '[') {
-	match('[');
-	match(NUM);
-	match(']');
-	remainingDeclarators();
-
+        match('[');
+        match(NUM);
+        match(']');
+        remainingDeclarators();
     } else if (lookahead == '(') {
-	match('(');
+        cout << "open function scope" << endl;
+        match('(');
 
-	if (lookahead == ')') {
-	    match(')');
-	    remainingDeclarators();
-
-	} else {
-	    parameters();
-	    match(')');
-	    match('{');
-	    declarations();
-	    statements();
-	    match('}');
-	}
-
+        if (lookahead == ')') {
+            match(')');
+            remainingDeclarators();
+        } else {
+            parameters();
+            match(')');
+            match('{');
+            declarations();
+            statements();
+            match('}');
+            cout << "close function scope" << endl;
+        }
     } else
-	remainingDeclarators();
+        remainingDeclarators();
 }
-
 
 /*
  * Function:	main
@@ -780,12 +702,12 @@ static void globalOrFunction()
  * Description:	Analyze the standard input stream.
  */
 
-int main()
-{
+int main(){
     lookahead = lexan(lexbuf);
-
+    cout << "open global scope" << endl;
     while (lookahead != DONE)
-	globalOrFunction();
+        globalOrFunction();
 
+    cout << "close global scope" << endl;
     exit(EXIT_SUCCESS);
 }

@@ -18,47 +18,47 @@ int numerrors, lineno = 1;
 
 
 /* Yes, we could have used a map, but we'd probably initialize it with an
-   array anyway, and let's face it, it's pretty simple to search an array. */
+ * array anyway, and let's face it, it's pretty simple to search an array. */
 
 static struct {
     string lexeme;
-    int token;
+    int	   token;
 } keywords[] = {
-    {"auto",     AUTO},
-    {"break",    BREAK},
-    {"case",     CASE},
-    {"char",     CHAR},
-    {"const",    CONST},
-    {"continue", CONTINUE},
-    {"default",  DEFAULT},
-    {"do",       DO},
-    {"double",   DOUBLE},
-    {"else",     ELSE},
-    {"enum",     ENUM},
-    {"extern",   EXTERN},
-    {"float",    FLOAT},
-    {"for",      FOR},
-    {"goto",     GOTO},
-    {"if",       IF},
-    {"int",      INT},
-    {"long",     LONG},
-    {"register", REGISTER},
-    {"return",   RETURN},
-    {"short",    SHORT},
-    {"signed",   SIGNED},
-    {"sizeof",   SIZEOF},
-    {"static",   STATIC},
-    {"struct",   STRUCT},
-    {"switch",   SWITCH},
-    {"typedef",  TYPEDEF},
-    {"union",    UNION},
-    {"unsigned", UNSIGNED},
-    {"void",     VOID},
-    {"volatile", VOLATILE},
-    {"while",    WHILE},
+    { "auto",	  AUTO	   },
+    { "break",	  BREAK	   },
+    { "case",	  CASE	   },
+    { "char",	  CHAR	   },
+    { "const",	  CONST	   },
+    { "continue", CONTINUE },
+    { "default",  DEFAULT  },
+    { "do",		  DO	   },
+    { "double",	  DOUBLE   },
+    { "else",	  ELSE	   },
+    { "enum",	  ENUM	   },
+    { "extern",	  EXTERN   },
+    { "float",	  FLOAT	   },
+    { "for",	  FOR	   },
+    { "goto",	  GOTO	   },
+    { "if",		  IF	   },
+    { "int",	  INT	   },
+    { "long",	  LONG	   },
+    { "register", REGISTER },
+    { "return",	  RETURN   },
+    { "short",	  SHORT	   },
+    { "signed",	  SIGNED   },
+    { "sizeof",	  SIZEOF   },
+    { "static",	  STATIC   },
+    { "struct",	  STRUCT   },
+    { "switch",	  SWITCH   },
+    { "typedef",  TYPEDEF  },
+    { "union",	  UNION	   },
+    { "unsigned", UNSIGNED },
+    { "void",	  VOID	   },
+    { "volatile", VOLATILE },
+    { "while",	  WHILE	   },
 };
 
-# define numKeywords (sizeof(keywords) / sizeof(keywords[0]))
+# define numKeywords    (sizeof(keywords) / sizeof(keywords[0]))
 
 
 /*
@@ -71,13 +71,12 @@ static struct {
  *		You just can't beat C for doing things down and dirty.
  */
 
-void report(const string &str, const string &arg)
-{
+void report(const string &str, const string &arg){
     char buf[1000];
 
     snprintf(buf, sizeof(buf), str.c_str(), arg.c_str());
     cerr << "line " << lineno << ": " << buf << endl;
-    numerrors ++;
+    numerrors++;
 }
 
 
@@ -88,258 +87,260 @@ void report(const string &str, const string &arg)
  *		stored in a buffer.
  */
 
-int lexan(string &lexbuf)
-{
-    int p;
-    unsigned i;
+int lexan(string &lexbuf){
+    int		   p;
+    unsigned   i;
     static int c = cin.get();
 
 
     /* The invariant here is that the next character has already been read
-       and is ready to be classified.  In this way, we eliminate having to
-       push back characters onto the stream, merely to read them again. */
+     * and is ready to be classified.  In this way, we eliminate having to
+     * push back characters onto the stream, merely to read them again. */
 
-    while (!cin.eof()) {
-	lexbuf.clear();
+    while(!cin.eof()) {
+        lexbuf.clear();
 
 
-	/* Ignore white space */
+        /* Ignore white space */
 
-	while (isspace(c)) {
-	    if (c == '\n')
-		lineno ++;
+        while(isspace(c)) {
+            if(c == '\n')
+                lineno++;
 
-	    c = cin.get();
-	}
+            c = cin.get();
+        }
 
 
-	/* Check for an identifier or a keyword */
+        /* Check for an identifier or a keyword */
 
-	if (isalpha(c) || c == '_') {
-	    do {
-		lexbuf += c;
-		c = cin.get();
-	    } while (isalnum(c) || c == '_');
+        if(isalpha(c) || c == '_') {
+            do {
+                lexbuf += c;
+                c		= cin.get();
+            } while(isalnum(c) || c == '_');
 
-	    for (i = 0; i < numKeywords; i ++)
-		if (keywords[i].lexeme == lexbuf)
-		    return keywords[i].token;
+            for(i = 0; i < numKeywords; i++)
+                if(keywords[i].lexeme == lexbuf)
+                    return keywords[i].token;
 
-	    return ID;
+            return ID;
 
 
-	/* Check for a number */
+            /* Check for a number */
+        } else if(isdigit(c)) {
+            do {
+                lexbuf += c;
+                c		= cin.get();
+            } while(isdigit(c));
 
-	} else if (isdigit(c)) {
-	    do {
-		lexbuf += c;
-		c = cin.get();
-	    } while (isdigit(c));
+            errno = 0;
+            strtol(lexbuf.c_str(), NULL, 0);
 
-	    errno = 0;
-	    strtol(lexbuf.c_str(), NULL, 0);
+            if(errno != 0)
+                report("integer constant too large");
 
-	    if (errno != 0)
-		report("integer constant too large");
+            if(c == 'l' || c == 'L') {
+                lexbuf += c;
+                c		= cin.get();
+            }
 
-	    if (c == 'l' || c == 'L') {
-		lexbuf += c;
-		c = cin.get();
-	    }
+            return NUM;
 
-	    return NUM;
 
+            /* There must be an easier way to do this.  It might seem stupid at
+             * this point to recognize each token separately, but eventually
+             * we'll be returning separate token values to the parser, so we
+             * might as well do it now. */
+        } else {
+            lexbuf += c;
 
-	/* There must be an easier way to do this.  It might seem stupid at
-	   this point to recognize each token separately, but eventually
-	   we'll be returning separate token values to the parser, so we
-	   might as well do it now. */
+            switch(c) {
+            /* Check for '||' */
 
-	} else {
-	    lexbuf += c;
+            case '|':
+                c = cin.get();
 
-	    switch(c) {
+                if(c == '|') {
+                    lexbuf += c;
+                    c		= cin.get();
+                    return OR;
+                }
 
+                return ERROR;
 
-	    /* Check for '||' */
 
-	    case '|':
-		c = cin.get();
+            /* Check for '=' and '==' */
 
-		if (c == '|') {
-		    lexbuf += c;
-		    c = cin.get();
-		    return OR;
-		}
+            case '=':
+                c = cin.get();
 
-		return ERROR;
+                if(c == '=') {
+                    lexbuf += c;
+                    c		= cin.get();
+                    return EQL;
+                }
 
+                return '=';
 
-	    /* Check for '=' and '==' */
 
-	    case '=':
-		c = cin.get();
+            /* Check for '&' and '&&' */
 
-		if (c == '=') {
-		    lexbuf += c;
-		    c = cin.get();
-		    return EQL;
-		}
+            case '&':
+                c = cin.get();
 
-		return '=';
+                if(c == '&') {
+                    lexbuf += c;
+                    c		= cin.get();
+                    return AND;
+                }
 
+                return '&';
 
-	    /* Check for '&' and '&&' */
 
-	    case '&':
-		c = cin.get();
+            /* Check for '!' and '!=' */
 
-		if (c == '&') {
-		    lexbuf += c;
-		    c = cin.get();
-		    return AND;
-		}
+            case '!':
+                c = cin.get();
 
-		return '&';
+                if(c == '=') {
+                    lexbuf += c;
+                    c		= cin.get();
+                    return NEQ;
+                }
 
+                return '!';
 
-	    /* Check for '!' and '!=' */
 
-	    case '!':
-		c = cin.get();
+            /* Check for '<' and '<=' */
 
-		if (c == '=') {
-		    lexbuf += c;
-		    c = cin.get();
-		    return NEQ;
-		}
+            case '<':
+                c = cin.get();
 
-		return '!';
+                if(c == '=') {
+                    lexbuf += c;
+                    c		= cin.get();
+                    return LEQ;
+                }
 
+                return '<';
 
-	    /* Check for '<' and '<=' */
 
-	    case '<':
-		c = cin.get();
+            /* Check for '>' and '>=' */
 
-		if (c == '=') {
-		    lexbuf += c;
-		    c = cin.get();
-		    return LEQ;
-		}
+            case '>':
+                c = cin.get();
 
-		return '<';
+                if(c == '=') {
+                    lexbuf += c;
+                    c		= cin.get();
+                    return GEQ;
+                }
 
+                return '>';
 
-	    /* Check for '>' and '>=' */
 
-	    case '>':
-		c = cin.get();
+            /* Check for '-', '--', and '->' */
 
-		if (c == '=') {
-		    lexbuf += c;
-		    c = cin.get();
-		    return GEQ;
-		}
+            case '-':
+                c = cin.get();
 
-		return '>';
+                if(c == '-') {
+                    lexbuf += c;
+                    c		= cin.get();
+                    return DEC;
+                } else if(c == '>') {
+                    lexbuf += c;
+                    c		= cin.get();
+                    return ARROW;
+                }
 
+                return '-';
 
-	    /* Check for '-', '--', and '->' */
 
-	    case '-':
-		c = cin.get();
+            /* Check for '+' and '++' */
 
-		if (c == '-') {
-		    lexbuf += c;
-		    c = cin.get();
-		    return DEC;
+            case '+':
+                c = cin.get();
 
-		} else if (c == '>') {
-		    lexbuf += c;
-		    c = cin.get();
-		    return ARROW;
-		}
+                if(c == '+') {
+                    lexbuf += c;
+                    c		= cin.get();
+                    return INC;
+                }
 
-		return '-';
+                return '+';
 
 
-	    /* Check for '+' and '++' */
+            /* Check for simple, single character tokens */
 
-	    case '+':
-		c = cin.get();
+            case '*':
+            case '%':
+            case ':':
+            case ';':
+            case '(':
+            case ')':
+            case '[':
+            case ']':
+            case '{':
+            case '}':
+            case '.':
+            case ',':
+                c = cin.get();
+                return lexbuf[0];
 
-		if (c == '+') {
-		    lexbuf += c;
-		    c = cin.get();
-		    return INC;
-		}
 
-		return '+';
+            /* Check for '/' or a comment */
 
+            case '/':
+                c = cin.get();
 
-	    /* Check for simple, single character tokens */
+                if(c == '*') {
+                    do {
+                        while(c != '*' && !cin.eof()) {
+                            if(c == '\n')
+                                lineno++;
 
-	    case '*': case '%': case ':': case ';':
-	    case '(': case ')': case '[': case ']':
-	    case '{': case '}': case '.': case ',':
-		c = cin.get();
-		return lexbuf[0];
+                            c = cin.get();
+                        }
 
+                        c = cin.get();
+                    } while(c != '/' && !cin.eof());
 
-	    /* Check for '/' or a comment */
+                    c = cin.get();
+                    break;
+                } else
+                    return '/';
 
-	    case '/':
-		c = cin.get();
 
-		if (c == '*') {
-		    do {
-			while (c != '*' && !cin.eof()) {
-			    if (c == '\n')
-				lineno ++;
+            /* Check for a string literal */
 
-			    c = cin.get();
-			}
+            case '"':
+                do {
+                    p		= c;
+                    c		= cin.get();
+                    lexbuf += c;
+                } while((c != '"' || p == '\\') && c != '\n' && !cin.eof());
 
-			c = cin.get();
-		    } while (c != '/' && !cin.eof());
+                if(c == '\n' || cin.eof())
+                    report("malformed string literal");
 
-		    c = cin.get();
-		    break;
+                c = cin.get();
+                return STRING;
 
-		} else
-		    return '/';
 
+            /* Handle EOF here as well */
 
-	    /* Check for a string literal */
+            case EOF:
+                return DONE;
 
-	    case '"':
-		do {
-		    p = c;
-		    c = cin.get();
-		    lexbuf += c;
-		} while ((c != '"' || p == '\\') && c != '\n' && !cin.eof());
 
-		if (c == '\n' || cin.eof())
-		    report("malformed string literal");
+            /* Everything else is illegal */
 
-		c = cin.get();
-		return STRING;
-
-
-	    /* Handle EOF here as well */
-
-	    case EOF:
-		return DONE;
-
-
-	    /* Everything else is illegal */
-
-	    default:
-		c = cin.get();
-		return ERROR;
-	    }
-	}
+            default:
+                c = cin.get();
+                return ERROR;
+            }
+        }
     }
 
     return DONE;
