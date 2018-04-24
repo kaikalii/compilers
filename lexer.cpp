@@ -4,6 +4,7 @@
 #include <cctype>
 #include <algorithm>
 
+#include "tokens.h"
 #include "lexer.h"
 
 using namespace std;
@@ -51,7 +52,7 @@ token_t lexan(std::string &lexbuf) {
             // Keywords
             for(unsigned int i = 0; i < keywords.size(); i++) {
                 if(keywords[i] == lexbuf) {
-                    return (token_t)(i+1);
+                    return (token_t)(i+256);
                 }
             }
             // Identifier
@@ -111,10 +112,10 @@ token_t lexan(std::string &lexbuf) {
                     if(cin.peek() == '>') {
                         lexbuf.push_back(cin.get());
                     }
-                    if(lexbuf == "-") return SUB;
+                    if(lexbuf == "-") return MINUS;
                     else if(lexbuf == "->") return ARROW;
                     break;
-                case '+': return ADD;
+                case '+': return PLUS;
                 case '*': return STAR;
                 case '(': return LPAREN;
                 case ')': return RPAREN;

@@ -1,8 +1,11 @@
 #include <string>
 #include <iostream>
 #include <assert.h>
+#include <memory>
 
+#include "type.h"
 #include "lexer.h"
+#include "checker.h"
 
 using namespace std;
 
@@ -45,14 +48,14 @@ unsigned pointers() {
 }
 
 bool isSpecifier(token_t t) {
-    return t == INT || t == LONG || t == CHAR;
+    return t == token_t::INT || t == token_t::LONG || t == token_t::CHAR;
 }
 
 token_t specifier() {
     token_t temp = lookahead;
-    if(lookahead == INT) match(INT);
-    else if(lookahead == LONG) match(LONG);
-    else if(lookahead == CHAR) match(CHAR);
+    if(lookahead == token_t::INT) match(token_t::INT);
+    else if(lookahead == token_t::LONG) match(token_t::LONG);
+    else if(lookahead == token_t::CHAR) match(token_t::CHAR);
     return temp;
 }
 
@@ -109,8 +112,8 @@ void expUn() {
         expUn();
         cout << "not" << endl;
     }
-    else if(lookahead == SUB) {
-        match(SUB);
+    else if(lookahead == MINUS) {
+        match(MINUS);
         expUn();
         cout << "neg" << endl;
     }
@@ -167,13 +170,13 @@ void expMul() {
 void expAdd() {
     expMul();
     while(1) {
-        if(lookahead == ADD) {
-            match(ADD);
+        if(lookahead == PLUS) {
+            match(PLUS);
             expMul();
             cout << "add" << endl;
         }
-        else if(lookahead == SUB) {
-            match(SUB);
+        else if(lookahead == MINUS) {
+            match(MINUS);
             expMul();
             cout << "sub" << endl;
         }
@@ -273,28 +276,27 @@ void expList() {
     #endif
 }
 
-unsigned declarator(token_t typespec) {
+void declarator(token_t typespec) {
     #ifdef DEBUG
     cout << "start declarator" << endl;
     #endif
 
     unsigned indirection = pointers();
     if(lookahead == ID) {
+        string id = lexbuf;
         match(ID);
         if(lookahead == LBRACKET) {
             match(LBRACKET);
+            declareVariable(id, make_shared<Type>(typespec, indirection, num_to_int(lexbuf)));
             match(NUM);
             match(RBRACKET);
-            cout << "(" << typespec + 8 << ", ARRAY" << endl;
         }
-        else cout << "(" << typespec + 8 << ", SCALAR" << endl;
+        else declareVariable(id, make_shared<Type>(typespec, indirection));
     }
 
     #ifdef DEBUG
     cout << "declarator" << endl;
     #endif
-
-    return indirection;
 }
 
 void declaratorList(token_t typespec) {
@@ -313,20 +315,18 @@ void declaratorList(token_t typespec) {
     #endif
 }
 
-unsigned declaration(token_t typespec) {
+void declaration() {
     #ifdef DEBUG
     cout << "start declaration" << endl;
     #endif
 
-    unsigned indirection = specifier();
+    token_t typespec = specifier();
     declaratorList(typespec);
     match(SEMICOLON);
 
     #ifdef DEBUG
     cout << "declaration" << endl;
     #endif
-
-    return indirection;
 }
 
 void declarations() {
@@ -334,7 +334,7 @@ void declarations() {
     cout << "start declarations" << endl;
     #endif
     while(isSpecifier(lookahead)) {
-        declaration(lookahead);
+        declaration();
     }
     #ifdef DEBUG
     cout << "declarations" << endl;
@@ -348,10 +348,12 @@ void statement() {
     cout << "start statement" << endl;
     #endif
     if(lookahead == LCURLY) {
+        openScope();
         match(LCURLY);
         declarations();
         statements();
         match(RCURLY);
+        closeScope();
     }
     else if(lookahead == RETURN) {
         match(RETURN);
@@ -401,82 +403,96 @@ void statements() {
     #endif
 }
 
-void parameter() {
+shared_ptr<Type> parameter() {
     if(isSpecifier(lookahead)) {
-        specifier();
-        pointers();
+        token_t typespec = specifier();
+        unsigned indirection = pointers();
+        string id = lexbuf;
         match(ID);
+        shared_ptr<Type> type = make_shared<Type>(typespec, indirection);
+        declareVariable(id, type);
+        return type;
     }
+    else return shared_ptr<Type>();
 }
 
-void parameterList() {
-    parameter();
+Parameters parameterList() {
+    Parameters types(1, parameter());
     while(lookahead == COMMA) {
         match(COMMA);
-        parameter();
+        types.push_back(parameter());
     }
+    return types;
 }
 
-void parameters() {
+Parameters parameters() {
     if(lookahead == VOID) {
         match(VOID);
+        return Parameters(1, make_shared<Type>(VOID));
     }
-    else {
-        parameterList();
-    }
+    return parameterList();
 }
 
-void globalDeclarator() {
-    pointers();
+void globalDeclarator(token_t typespec) {
+    unsigned indirection = pointers();
+    string id = lexbuf;
     match(ID);
     if(lookahead == LPAREN) {
         match(LPAREN);
         match(RPAREN);
+        declareVariable(id, make_shared<Type>(typespec, indirection, new Parameters));
     }
     else if(lookahead == LBRACKET) {
         match(LBRACKET);
+        declareVariable(id, make_shared<Type>(typespec, indirection, num_to_int(lexbuf)));
         match(NUM);
         match(RBRACKET);
     }
 }
 
 void translationUnit() {
-    specifier();
-    pointers();
+    token_t typespec = specifier();
+    unsigned indirection = pointers();
+    string id = lexbuf;
     match(ID);
     if(lookahead == LPAREN) {
         match(LPAREN);
         if(lookahead != RPAREN) {
-            parameters();
+            openScope();
+            auto function_parameters = parameters();
             match(RPAREN);
+            defineFunction(id, make_shared<Type>(typespec, indirection, new Parameters(function_parameters)));
             match(LCURLY);
             declarations();
             statements();
             match(RCURLY);
+            closeScope();
         }
         else {
             match(RPAREN);
+            declareVariable(id, make_shared<Type>(typespec, indirection, new Parameters));
             while(lookahead == COMMA) {
                 match(COMMA);
-                globalDeclarator();
+                globalDeclarator(typespec);
             }
             match(SEMICOLON);
         }
     }
     else if(lookahead == LBRACKET) {
         match(LBRACKET);
+        declareVariable(id, make_shared<Type>(typespec, indirection, num_to_int(lexbuf)));
         match(NUM);
         match(RBRACKET);
         while(lookahead == COMMA) {
             match(COMMA);
-            globalDeclarator();
+            globalDeclarator(typespec);
         }
         match(SEMICOLON);
     }
     else {
         while(lookahead == COMMA) {
             match(COMMA);
-            globalDeclarator();
+            globalDeclarator(typespec);
         }
         match(SEMICOLON);
     }
@@ -484,8 +500,10 @@ void translationUnit() {
 
 int main() {
     lookahead = lexan(lexbuf);
+    openScope();
     while(lookahead != DONE) {
         translationUnit();
     }
+    closeScope();
     return 0;
 }
