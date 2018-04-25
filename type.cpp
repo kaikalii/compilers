@@ -4,23 +4,26 @@
 
 using namespace std;
 
-Type::Type(token_t specifier, unsigned indirection) : _specifier(specifier), _indirection(indirection), _kind(SCALAR) {}
-Type::Type(token_t specifier, unsigned indirection, unsigned length) : _specifier(specifier), _indirection(indirection), _kind(ARRAY), _length(length) {}
-Type::Type(token_t specifier, unsigned indirection, Parameters *parameters) : _specifier(specifier), _indirection(indirection), _kind(FUNCTION), _parameters(parameters) {}
+Type::Type(token_t specifier, unsigned indirection) : _specifier(specifier), _indirection(indirection), _kind(SCALAR) {
+}
+Type::Type(token_t specifier, unsigned indirection, unsigned length) : _specifier(specifier), _indirection(indirection), _kind(ARRAY), _length(length) {
+}
+Type::Type(token_t specifier, unsigned indirection, Parameters *parameters) : _specifier(specifier), _indirection(indirection), _kind(FUNCTION), _parameters(parameters) {
+}
 
 bool Type::operator==(const Type& rhs) const {
-    if (
+    if(
         _kind != rhs._kind ||
         _specifier != rhs._specifier ||
         _indirection != rhs._indirection
         ) return false;
 
-    if (_kind == SCALAR) return true;
+    if(_kind == SCALAR) return true;
 
-    if (_kind == ARRAY) return _length == rhs._length;
+    if(_kind == ARRAY) return _length == rhs._length;
 
     assert(_kind == FUNCTION);
-    if (!_parameters || !rhs._parameters) return true;
+    if(!_parameters || !rhs._parameters) return true;
 
     return *_parameters == *rhs._parameters;
 }
@@ -30,18 +33,18 @@ bool Type::operator!=(const Type& rhs) const {
 }
 
 std::ostream& operator<<(std::ostream& out, const Type& type) {
-    switch (type.specifier()) {
+    switch(type.specifier()) {
     case CHAR: out << "char"; break;
     case INT: out << "int"; break;
     case LONG: out << "long"; break;
     default: out << "error";
     }
-    if (type.indirection()) {
+    if(type.indirection()) {
         out << " ";
         out << string(type.indirection(), '*');
     }
-    if (type.kind() == ARRAY) out << "[" << type.length() << "]";
-    else if (type.kind() == FUNCTION) out << "()";
+    if(type.kind() == ARRAY) out << "[" << type.length() << "]";
+    else if(type.kind() == FUNCTION) out << "()";
 
     return out;
 }

@@ -5,20 +5,20 @@
 #include <memory>
 #include "symbol.h"
 
-typedef std::vector<shared_ptr<Symbol> Symbols;
+typedef std::vector<std::shared_ptr<Symbol> > Symbols;
 
-class Scope {
-    typedef std:string string;
+class Scope : std::enable_shared_from_this<Scope> {
 private:
-    shared_ptr<Scope> _enclosing;
+    typedef std::string	string;
+    std::shared_ptr<Scope> _enclosing;
     Symbols _symbols;
 public:
-    Scope(shared_ptr<Scope> _enclosing = )
-    void insert(shared_ptr<Symbol> symbol);
+    Scope(std::shared_ptr<Scope> enclosing = std::shared_ptr<Scope>(nullptr));
+    void insert(std::shared_ptr<Symbol> symbol);
     void remove(const string& name);
-    shared_ptr<Symbol> find(const string& name) const;
-    shared_ptr<Symbol> lookup(const string& name) const;
-    shared_ptr<Symbol> enclosing() const;
+    const std::shared_ptr<Symbol> find(const string& name) const;
+    const std::shared_ptr<Symbol> lookup(const string& name) const;
+    const std::shared_ptr<Scope> enclosing() const;
     const Symbols& symbols() const;
 };
 

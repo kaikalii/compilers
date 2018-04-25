@@ -5,6 +5,8 @@
 #include <memory>
 #include "type.h"
 
+extern std::shared_ptr<Scope> curr_scope;
+
 void openScope();
 
 void closeScope();

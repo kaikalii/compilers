@@ -12,11 +12,11 @@
 
 enum token_t {
     ASSIGN = '=', LTN = '<', GTN = '>', PLUS = '+', MINUS = '-',
-    STAR = '*', DIV = '/', REM = '%', ADDR = '&', NOT = '!', PERIOD = '.',
+    STAR   = '*', DIV = '/', REM = '%', ADDR = '&', NOT = '!', PERIOD = '.',
     LPAREN = '(', RPAREN = ')', LBRACKET = '[', RBRACKET = ']',
     LCURLY = '{', RCURLY = '}', SEMICOLON = ';', COLON = ':', COMMA = ',',
 
-    AUTO = 256,
+    AUTO   = 256,
     BREAK,
     CASE,
     CHAR,

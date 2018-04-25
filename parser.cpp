@@ -4,6 +4,8 @@
 #include <memory>
 
 #include "type.h"
+#include "symbol.h"
+#include "scope.h"
 #include "lexer.h"
 #include "checker.h"
 
@@ -12,15 +14,15 @@ using namespace std;
 token_t lookahead, nexttoken;
 string lexbuf, nextbuf;
 bool peeked = false;
-int lineno = 1;
+int	lineno = 1;
+shared_ptr<Scope> curr_scope = make_shared<Scope>(nullptr);
 
 void match(token_t t) {
     if(peeked) {
         lookahead = nexttoken;
-        lexbuf = nextbuf;
-        peeked = false;
-    }
-    else {
+        lexbuf	  = nextbuf;
+        peeked	  = false;
+    } else {
         if(lookahead == t) lookahead = lexan(lexbuf);
         else {
             cout << "error on line: " << lineno << endl;
@@ -33,13 +35,14 @@ void match(token_t t) {
 token_t peek() {
     if(!peeked) {
         nexttoken = lexan(nextbuf);
-        peeked = true;
+        peeked	  = true;
     }
     return nexttoken;
 }
 
 unsigned pointers() {
     unsigned count = 0;
+
     while(lookahead == STAR) {
         match(STAR);
         count++;
@@ -53,6 +56,7 @@ bool isSpecifier(token_t t) {
 
 token_t specifier() {
     token_t temp = lookahead;
+
     if(lookahead == token_t::INT) match(token_t::INT);
     else if(lookahead == token_t::LONG) match(token_t::LONG);
     else if(lookahead == token_t::CHAR) match(token_t::CHAR);
@@ -76,8 +80,7 @@ void term() {
                 match(RPAREN);
             }
         }
-    }
-    else if(lookahead == NUM) match(NUM);
+    } else if(lookahead == NUM) match(NUM);
     else if(lookahead == STRING) match(STRING);
     else if(lookahead == LPAREN) {
         match(LPAREN);
@@ -92,7 +95,9 @@ void expIndex() {
         match(LBRACKET);
         expOr();
         match(RBRACKET);
+        #ifndef DEBUG
         cout << "index" << endl;
+        #endif
     }
 }
 
@@ -100,35 +105,39 @@ void expUn() {
     if(lookahead == ADDR) {
         match(ADDR);
         expUn();
+        #ifndef DEBUG
         cout << "addr" << endl;
-    }
-    else if(lookahead == STAR) {
+        #endif
+    } else if(lookahead == STAR) {
         match(STAR);
         expUn();
+        #ifndef DEBUG
         cout << "deref" << endl;
-    }
-    else if(lookahead == NOT) {
+        #endif
+    } else if(lookahead == NOT) {
         match(NOT);
         expUn();
+        #ifndef DEBUG
         cout << "not" << endl;
-    }
-    else if(lookahead == MINUS) {
+        #endif
+    } else if(lookahead == MINUS) {
         match(MINUS);
         expUn();
+        #ifndef DEBUG
         cout << "neg" << endl;
-    }
-    else if(lookahead == SIZEOF) {
+        #endif
+    } else if(lookahead == SIZEOF) {
         match(SIZEOF);
         if(lookahead == LPAREN && isSpecifier(peek())) {
             match(LPAREN);
             specifier();
             pointers();
             match(RPAREN);
-        }
-        else expUn();
+        } else expUn();
+        #ifndef DEBUG
         cout << "sizeof" << endl;
-    }
-    else {
+        #endif
+    } else {
         expIndex();
     }
 }
@@ -140,7 +149,9 @@ void expCast() {
         pointers();
         match(RPAREN);
         expCast();
+        #ifndef DEBUG
         cout << "cast" << endl;
+        #endif
     }
     expUn();
 }
@@ -151,19 +162,22 @@ void expMul() {
         if(lookahead == STAR) {
             match(STAR);
             expCast();
+            #ifndef DEBUG
             cout << "mul" << endl;
-        }
-        else if(lookahead == DIV) {
+            #endif
+        } else if(lookahead == DIV) {
             match(DIV);
             expCast();
+            #ifndef DEBUG
             cout << "div" << endl;
-        }
-        else if(lookahead == REM) {
+            #endif
+        } else if(lookahead == REM) {
             match(REM);
             expCast();
+            #ifndef DEBUG
             cout << "rem" << endl;
-        }
-        else break;
+            #endif
+        } else break;
     }
 }
 
@@ -173,14 +187,16 @@ void expAdd() {
         if(lookahead == PLUS) {
             match(PLUS);
             expMul();
+            #ifndef DEBUG
             cout << "add" << endl;
-        }
-        else if(lookahead == MINUS) {
+            #endif
+        } else if(lookahead == MINUS) {
             match(MINUS);
             expMul();
+            #ifndef DEBUG
             cout << "sub" << endl;
-        }
-        else break;
+            #endif
+        } else break;
     }
 }
 
@@ -190,24 +206,28 @@ void expComp() {
         if(lookahead == LTN) {
             match(LTN);
             expAdd();
+            #ifndef DEBUG
             cout << "ltn" << endl;
-        }
-        else if(lookahead == GTN) {
+            #endif
+        } else if(lookahead == GTN) {
             match(GTN);
             expAdd();
+            #ifndef DEBUG
             cout << "gtn" << endl;
-        }
-        else if(lookahead == LEQ) {
+            #endif
+        } else if(lookahead == LEQ) {
             match(LEQ);
             expAdd();
+            #ifndef DEBUG
             cout << "leq" << endl;
-        }
-        else if(lookahead == GEQ) {
+            #endif
+        } else if(lookahead == GEQ) {
             match(GEQ);
             expAdd();
+            #ifndef DEBUG
             cout << "geq" << endl;
-        }
-        else break;
+            #endif
+        } else break;
     }
 }
 
@@ -217,14 +237,16 @@ void expEql() {
         if(lookahead == EQL) {
             match(EQL);
             expComp();
+            #ifndef DEBUG
             cout << "eql" << endl;
-        }
-        else if(lookahead == NEQ) {
+            #endif
+        } else if(lookahead == NEQ) {
             match(NEQ);
             expComp();
+            #ifndef DEBUG
             cout << "neq" << endl;
-        }
-        else break;
+            #endif
+        } else break;
     }
 }
 
@@ -234,9 +256,10 @@ void expAnd() {
         if(lookahead == AND) {
             match(AND);
             expEql();
+            #ifndef DEBUG
             cout << "and" << endl;
-        }
-        else break;
+            #endif
+        } else break;
     }
 }
 
@@ -246,9 +269,10 @@ void expOr() {
         if(lookahead == OR) {
             match(OR);
             expAnd();
+            #ifndef DEBUG
             cout << "or" << endl;
-        }
-        else break;
+            #endif
+        } else break;
     }
 }
 
@@ -290,8 +314,7 @@ void declarator(token_t typespec) {
             declareVariable(id, make_shared<Type>(typespec, indirection, num_to_int(lexbuf)));
             match(NUM);
             match(RBRACKET);
-        }
-        else declareVariable(id, make_shared<Type>(typespec, indirection));
+        } else declareVariable(id, make_shared<Type>(typespec, indirection));
     }
 
     #ifdef DEBUG
@@ -354,20 +377,17 @@ void statement() {
         statements();
         match(RCURLY);
         closeScope();
-    }
-    else if(lookahead == RETURN) {
+    } else if(lookahead == RETURN) {
         match(RETURN);
         expression();
         match(SEMICOLON);
-    }
-    else if(lookahead == WHILE) {
+    } else if(lookahead == WHILE) {
         match(WHILE);
         match(LPAREN);
         expression();
         match(RPAREN);
         statement();
-    }
-    else if(lookahead == IF) {
+    } else if(lookahead == IF) {
         match(IF);
         match(LPAREN);
         expression();
@@ -377,8 +397,7 @@ void statement() {
             match(ELSE);
             statement();
         }
-    }
-    else {
+    } else {
         expression();
         if(lookahead == ASSIGN) {
             match(ASSIGN);
@@ -405,19 +424,19 @@ void statements() {
 
 shared_ptr<Type> parameter() {
     if(isSpecifier(lookahead)) {
-        token_t typespec = specifier();
-        unsigned indirection = pointers();
-        string id = lexbuf;
+        token_t			 typespec	 = specifier();
+        unsigned		 indirection = pointers();
+        string			 id			 = lexbuf;
         match(ID);
         shared_ptr<Type> type = make_shared<Type>(typespec, indirection);
         declareVariable(id, type);
         return type;
-    }
-    else return shared_ptr<Type>();
+    } else return shared_ptr<Type>();
 }
 
 Parameters parameterList() {
     Parameters types(1, parameter());
+
     while(lookahead == COMMA) {
         match(COMMA);
         types.push_back(parameter());
@@ -435,14 +454,14 @@ Parameters parameters() {
 
 void globalDeclarator(token_t typespec) {
     unsigned indirection = pointers();
-    string id = lexbuf;
+    string	 id			 = lexbuf;
+
     match(ID);
     if(lookahead == LPAREN) {
         match(LPAREN);
         match(RPAREN);
         declareVariable(id, make_shared<Type>(typespec, indirection, new Parameters));
-    }
-    else if(lookahead == LBRACKET) {
+    } else if(lookahead == LBRACKET) {
         match(LBRACKET);
         declareVariable(id, make_shared<Type>(typespec, indirection, num_to_int(lexbuf)));
         match(NUM);
@@ -451,9 +470,10 @@ void globalDeclarator(token_t typespec) {
 }
 
 void translationUnit() {
-    token_t typespec = specifier();
+    token_t	 typespec	 = specifier();
     unsigned indirection = pointers();
-    string id = lexbuf;
+    string	 id			 = lexbuf;
+
     match(ID);
     if(lookahead == LPAREN) {
         match(LPAREN);
@@ -467,8 +487,7 @@ void translationUnit() {
             statements();
             match(RCURLY);
             closeScope();
-        }
-        else {
+        } else {
             match(RPAREN);
             declareVariable(id, make_shared<Type>(typespec, indirection, new Parameters));
             while(lookahead == COMMA) {
@@ -477,8 +496,7 @@ void translationUnit() {
             }
             match(SEMICOLON);
         }
-    }
-    else if(lookahead == LBRACKET) {
+    } else if(lookahead == LBRACKET) {
         match(LBRACKET);
         declareVariable(id, make_shared<Type>(typespec, indirection, num_to_int(lexbuf)));
         match(NUM);
@@ -488,8 +506,7 @@ void translationUnit() {
             globalDeclarator(typespec);
         }
         match(SEMICOLON);
-    }
-    else {
+    } else {
         while(lookahead == COMMA) {
             match(COMMA);
             globalDeclarator(typespec);

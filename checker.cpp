@@ -1,17 +1,22 @@
 #include <iostream>
 #include <string>
+#include <memory>
 #include "tokens.h"
 #include "type.h"
+#include "symbol.h"
+#include "scope.h"
 #include "checker.h"
 
 using namespace std;
 
 void openScope() {
     cout << "opening scope" << endl;
+    curr_scope = make_shared<Scope>(curr_scope);
 }
 
 void closeScope() {
     cout << "closing scope" << endl;
+    curr_scope = curr_scope->enclosing();
 }
 
 string spec_to_str(int t) {
@@ -25,10 +30,16 @@ string spec_to_str(int t) {
 }
 
 void declareVariable(string id, std::shared_ptr<Type> type) {
+    // check for the variable in the global scope
+    auto global_scope = curr_scope;
+    while(global_scope.enclosing()) global_scope = enclosing();
+    
+
     cout << "declaring " << spec_to_str(type->specifier()) << " " << string(type->indirection(), '*') << id;
     if(type->kind() == ARRAY) cout << "[" << type->length() << "]";
     else if(type->kind() == FUNCTION) cout << "()";
     cout << endl;
+
 }
 
 void defineFunction(std::string id, std::shared_ptr<Type> type) {

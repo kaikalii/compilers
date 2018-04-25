@@ -8,26 +8,26 @@
 
 typedef std::vector<std::shared_ptr<class Type> > Parameters;
 
-enum kind_t {ARRAY, FUNCTION, SCALAR};
+enum kind_t { ARRAY, FUNCTION, SCALAR };
 
 class Type {
 private:
-    token_t _specifier;
-    unsigned _indirection;
-    kind_t _kind;
-    unsigned _length;
-    Parameters* _parameters;
+token_t _specifier;
+unsigned _indirection;
+kind_t _kind;
+unsigned _length;
+Parameters* _parameters;
 public:
-    Type(token_t specifier, unsigned indirection = 0);
-    Type(token_t specifier, unsigned indirection, unsigned length);
-    Type(token_t specifier, unsigned indirection, Parameters *parameters);
-    bool operator==(const Type& rhs) const;
-    bool operator!=(const Type& rhs) const;
-    token_t specifier() const;
-    unsigned indirection() const;
-    kind_t kind() const;
-    unsigned length() const;
-    Parameters* parameters() const;
+Type(token_t specifier, unsigned indirection = 0);
+Type(token_t specifier, unsigned indirection, unsigned length);
+Type(token_t specifier, unsigned indirection, Parameters *parameters);
+bool operator==(const Type& rhs) const;
+bool operator!=(const Type& rhs) const;
+token_t specifier() const;
+unsigned indirection() const;
+kind_t kind() const;
+unsigned length() const;
+Parameters* parameters() const;
 };
 
 std::ostream& operator<<(std::ostream& out, const Type& type);
