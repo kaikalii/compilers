@@ -7,7 +7,7 @@
 
 typedef std::vector<std::shared_ptr<Symbol> > Symbols;
 
-class Scope : std::enable_shared_from_this<Scope> {
+class Scope : public std::enable_shared_from_this<Scope> {
 private:
     typedef std::string	string;
     std::shared_ptr<Scope> _enclosing;

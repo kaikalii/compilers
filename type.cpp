@@ -16,7 +16,7 @@ bool Type::operator==(const Type& rhs) const {
         _kind != rhs._kind ||
         _specifier != rhs._specifier ||
         _indirection != rhs._indirection
-        ) return false;
+    ) return false;
 
     if(_kind == SCALAR) return true;
 

@@ -1,6 +1,7 @@
 #include <vector>
 #include <memory>
 #include <algorithm>
+#include <iostream>
 #include "symbol.h"
 #include "scope.h"
 
@@ -22,17 +23,25 @@ void Scope::remove(const string& name) {
 
 const shared_ptr<Symbol> Scope::find(const string& name) const {
     for(auto &s: _symbols) {
-        if(s->id() != name) return s;
+        if(s->id() == name) return s;
     }
     return shared_ptr<Symbol>(nullptr);
 }
 
 const shared_ptr<Symbol> Scope::lookup(const string& name) const {
+    #ifdef DEBUG
+    cout << "Scope::lookup(" << name << ")" << endl;
+    #endif
     auto curr_scope = shared_from_this();
     while(curr_scope) {
-        if(auto symbol = find(name)) return symbol;
-        curr_scope = _enclosing;
+        if(auto symbol = curr_scope->find(name)) return symbol;
+        curr_scope = curr_scope->enclosing();
     }
+
+    #ifdef DEBUG
+    cout << "Scope::lookup(" << name << ") failed" << endl;
+    #endif
+
     return shared_ptr<Symbol>(nullptr);
 }
 
