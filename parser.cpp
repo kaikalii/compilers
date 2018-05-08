@@ -64,248 +64,267 @@ token_t specifier() {
     return temp;
 }
 
-void expOr(), expression();
+Type expression(bool& lvalue);
 
-void term() {
+Type term(bool& lvalue) {
+    Type type = Type();
     if(lookahead == ID) {
-        if(!curr_scope->lookup(lexbuf)) cerr << "line " << lineno << ": '" << lexbuf << "' undeclared" << endl;
+        auto symbol = curr_scope->lookup(lexbuf);
+        if(!symbol) cerr << "line " << lineno << ": '" << lexbuf << "' undeclared" << endl;
+        type = *symbol->type();
+        if(type.kind() == SCALAR) lvalue = true;
         match(ID);
         if(lookahead == LPAREN) {
+            lvalue = false;
+            Parameters params;
             match(LPAREN);
             if(lookahead == RPAREN) match(RPAREN);
             else {
-                expression();
+                params.push_back(make_shared<Type>(expression(lvalue)));
                 while(lookahead == COMMA) {
                     match(COMMA);
-                    expression();
+                    params.push_back(make_shared<Type>(expression(lvalue)));
                 }
                 match(RPAREN);
             }
+            type = checkFunctionCall(type, params);
         }
-    } else if(lookahead == NUM) match(NUM);
-    else if(lookahead == STRING) match(STRING);
+    }
+    else if(lookahead == NUM) {
+        if(lexbuf.back() == 'l' || lexbuf.back() == 'L') type = Type(LONG);
+        else type = Type(INT);
+        lvalue = false;
+        match(NUM);
+    }
+    else if(lookahead == STRING) {
+        type = Type(CHAR, 1);
+        lvalue = false;
+        match(STRING);
+    }
     else if(lookahead == LPAREN) {
         match(LPAREN);
-        expOr();
+        type = expression(lvalue);
         match(RPAREN);
     }
+    return type;
 }
 
-void expIndex() {
-    term();
+Type expIndex(bool& lvalue) {
+    Type left = term(lvalue);
     while(lookahead == LBRACKET) {
         match(LBRACKET);
-        expOr();
+        left = checkIndex(left, expression(lvalue));
+        lvalue = true;
         match(RBRACKET);
-        #ifdef DEBUG
-        cout << "index" << endl;
-        #endif
     }
+    return left;
 }
 
-void expUn() {
+Type expUn(bool& lvalue) {
     if(lookahead == ADDR) {
         match(ADDR);
-        expUn();
-        #ifdef DEBUG
-        cout << "addr" << endl;
-        #endif
+        Type operand = expUn(lvalue);
+        operand = checkReference(operand, lvalue);
+        lvalue = false;
+        return operand;
+
     } else if(lookahead == STAR) {
         match(STAR);
-        expUn();
-        #ifdef DEBUG
-        cout << "deref" << endl;
-        #endif
+        Type operand = expUn(lvalue);
+        operand = checkDereference(operand);
+        lvalue = true;
+        return operand;
+
     } else if(lookahead == NOT) {
         match(NOT);
-        expUn();
-        #ifdef DEBUG
-        cout << "not" << endl;
-        #endif
+        Type operand = expUn(lvalue);
+        operand = checkNot(operand);
+        lvalue = false;
+
     } else if(lookahead == MINUS) {
         match(MINUS);
-        expUn();
-        #ifdef DEBUG
-        cout << "neg" << endl;
-        #endif
+        Type operand = expUn(lvalue);
+        operand = checkNegate(operand);
+        lvalue = false;
+
     } else if(lookahead == SIZEOF) {
         match(SIZEOF);
+        Type operand;
         if(lookahead == LPAREN && isSpecifier(peek())) {
             match(LPAREN);
-            specifier();
-            pointers();
+            token_t spec = specifier();
+            unsigned indirection = pointers();
             match(RPAREN);
-        } else expUn();
-        #ifdef DEBUG
-        cout << "sizeof" << endl;
-        #endif
-    } else {
-        expIndex();
+            operand = Type(spec, indirection);
+        } else {
+            operand = expUn(lvalue);
+        }
+        lvalue = false;
+        return operand;
     }
+    return expIndex(lvalue);
 }
 
-void expCast() {
+Type expCast(bool& lvalue) {
     if(lookahead == LPAREN && isSpecifier(peek())) {
         match(LPAREN);
-        specifier();
-        pointers();
+        token_t spec = specifier();
+        unsigned indirection = pointers();
         match(RPAREN);
-        expCast();
-        #ifdef DEBUG
-        cout << "cast" << endl;
-        #endif
+        Type from = expCast(lvalue);
+        Type to = Type(spec, indirection);
+        to = checkCast(to, from);
+        lvalue = false;
+
+        return to;
     }
-    expUn();
+    else {
+        return expUn(lvalue);
+    }
 }
 
-void expMul() {
-    expCast();
+Type expMul(bool& lvalue) {
+    Type left = expCast(lvalue);
     while(1) {
         if(lookahead == STAR) {
             match(STAR);
-            expCast();
-            #ifdef DEBUG
-            cout << "mul" << endl;
-            #endif
+            Type right = expCast(lvalue);
+            left = checkMultiplication(left, right, "*");
+            lvalue = false;
+
         } else if(lookahead == DIV) {
             match(DIV);
-            expCast();
-            #ifdef DEBUG
-            cout << "div" << endl;
-            #endif
+            Type right = expCast(lvalue);
+            left = checkMultiplication(left, right, "/");
+            lvalue = false;
+
         } else if(lookahead == REM) {
             match(REM);
-            expCast();
-            #ifdef DEBUG
-            cout << "rem" << endl;
-            #endif
+            Type right = expCast(lvalue);
+            left = checkMultiplication(left, right, "%");
+            lvalue = false;
+
         } else break;
     }
+    return left;
 }
 
-void expAdd() {
-    expMul();
+Type expAdd(bool& lvalue) {
+    Type left = expMul(lvalue);
     while(1) {
         if(lookahead == PLUS) {
             match(PLUS);
-            expMul();
-            #ifdef DEBUG
-            cout << "add" << endl;
-            #endif
+            Type right = expMul(lvalue);
+            left = checkAddition(left, right);
+            lvalue = false;
+
         } else if(lookahead == MINUS) {
             match(MINUS);
-            expMul();
-            #ifdef DEBUG
-            cout << "sub" << endl;
-            #endif
+            Type right = expMul(lvalue);
+            left = checkSubtraction(left, right);
+            lvalue = false;
+
         } else break;
     }
+    return left;
 }
 
-void expComp() {
-    expAdd();
+Type expComp(bool& lvalue) {
+    Type left = expAdd(lvalue);
     while(1) {
         if(lookahead == LTN) {
             match(LTN);
-            expAdd();
-            #ifdef DEBUG
-            cout << "ltn" << endl;
-            #endif
+            Type right = expAdd(lvalue);
+            left = checkLogicalEqComp(left, right, "<");
+            lvalue = false;
+
         } else if(lookahead == GTN) {
             match(GTN);
-            expAdd();
-            #ifdef DEBUG
-            cout << "gtn" << endl;
-            #endif
+            Type right = expAdd(lvalue);
+            left = checkLogicalEqComp(left, right, ">");
+            lvalue = false;
+
         } else if(lookahead == LEQ) {
             match(LEQ);
-            expAdd();
-            #ifdef DEBUG
-            cout << "leq" << endl;
-            #endif
+            Type right = expAdd(lvalue);
+            left = checkLogicalEqComp(left, right, "<=");
+            lvalue = false;
+
         } else if(lookahead == GEQ) {
             match(GEQ);
-            expAdd();
-            #ifdef DEBUG
-            cout << "geq" << endl;
-            #endif
+            Type right = expAdd(lvalue);
+            left = checkLogicalEqComp(left, right, ">=");
+            lvalue = false;
+
         } else break;
     }
+    return left;
 }
 
-void expEql() {
-    expComp();
+Type expEql(bool& lvalue) {
+    Type left = expComp(lvalue);
     while(1) {
         if(lookahead == EQL) {
             match(EQL);
-            expComp();
-            #ifdef DEBUG
-            cout << "eql" << endl;
-            #endif
+            Type right = expComp(lvalue);
+            left = checkLogicalEqComp(left, right, "==");
+            lvalue = false;
+
         } else if(lookahead == NEQ) {
             match(NEQ);
-            expComp();
-            #ifdef DEBUG
-            cout << "neq" << endl;
-            #endif
+            Type right = expComp(lvalue);
+            left = checkLogicalEqComp(left, right, "!=");
+            lvalue = false;
+
         } else break;
     }
+    return left;
 }
 
-void expAnd() {
-    expEql();
-    while(1) {
-        if(lookahead == AND) {
-            match(AND);
-            expEql();
-            #ifdef DEBUG
-            cout << "and" << endl;
-            #endif
-        } else break;
+Type expAnd(bool& lvalue) {
+    Type left = expEql(lvalue);
+    while(lookahead == AND) {
+        match(AND);
+        Type right = expEql(lvalue);
+        left = checkLogicalAnd(left, right);
+        lvalue = false;
+
     }
+    return left;
 }
 
-void expOr() {
-    expAnd();
-    while(1) {
-        if(lookahead == OR) {
-            match(OR);
-            expAnd();
-            #ifdef DEBUG
-            cout << "or" << endl;
-            #endif
-        } else break;
+Type expOr(bool& lvalue) {
+    Type left = expAnd(lvalue);
+    while(lookahead == OR) {
+        match(OR);
+        Type right = expAnd(lvalue);
+        left = checkLogicalOr(left, right);
+        lvalue = false;
+
     }
+    return left;
 }
 
-void expression() {
-    #ifdef DEBUG
-    cout << "start expression" << endl;
-    #endif
-    expOr();
-    #ifdef DEBUG
-    cout << "expression" << endl;
-    #endif
+Type expression(bool& lvalue) {
+
+    Type result = expOr(lvalue);
+
+    return result;
 }
 
 void expList() {
-    #ifdef DEBUG
-    cout << "start expression-list" << endl;
-    #endif
-    expression();
+
+    bool lvalue;
+    expression(lvalue);
     while(lookahead == COMMA) {
         match(COMMA);
-        expOr();
+        expression(lvalue);
     }
-    #ifdef DEBUG
-    cout << "expression-list" << endl;
-    #endif
+
 }
 
 void declarator(token_t typespec) {
-    #ifdef DEBUG
-    cout << "start declarator" << endl;
-    #endif
+
 
     unsigned indirection = pointers();
     if(lookahead == ID) {
@@ -319,15 +338,11 @@ void declarator(token_t typespec) {
         } else declareVariable(id, make_shared<Type>(typespec, indirection));
     }
 
-    #ifdef DEBUG
-    cout << "declarator" << endl;
-    #endif
+
 }
 
 void declaratorList(token_t typespec) {
-    #ifdef DEBUG
-    cout << "start declarator-list" << endl;
-    #endif
+
 
     declarator(typespec);
     while(lookahead == COMMA) {
@@ -335,43 +350,31 @@ void declaratorList(token_t typespec) {
         declarator(typespec);
     }
 
-    #ifdef DEBUG
-    cout << "declarator-list" << endl;
-    #endif
+
 }
 
 void declaration() {
-    #ifdef DEBUG
-    cout << "start declaration" << endl;
-    #endif
+
 
     token_t typespec = specifier();
     declaratorList(typespec);
     match(SEMICOLON);
 
-    #ifdef DEBUG
-    cout << "declaration" << endl;
-    #endif
+
 }
 
 void declarations() {
-    #ifdef DEBUG
-    cout << "start declarations" << endl;
-    #endif
+
     while(isSpecifier(lookahead)) {
         declaration();
     }
-    #ifdef DEBUG
-    cout << "declarations" << endl;
-    #endif
+
 }
 
 void statements();
 
 void statement() {
-    #ifdef DEBUG
-    cout << "start statement" << endl;
-    #endif
+    bool lvalue;
     if(lookahead == LCURLY) {
         openScope();
         match(LCURLY);
@@ -381,18 +384,18 @@ void statement() {
         closeScope();
     } else if(lookahead == RETURN) {
         match(RETURN);
-        expression();
+        expression(lvalue);
         match(SEMICOLON);
     } else if(lookahead == WHILE) {
         match(WHILE);
         match(LPAREN);
-        expression();
+        expression(lvalue);
         match(RPAREN);
         statement();
     } else if(lookahead == IF) {
         match(IF);
         match(LPAREN);
-        expression();
+        expression(lvalue);
         match(RPAREN);
         statement();
         if(lookahead == ELSE) {
@@ -400,34 +403,26 @@ void statement() {
             statement();
         }
     } else {
-        expression();
+        expression(lvalue);
         if(lookahead == ASSIGN) {
             match(ASSIGN);
-            expression();
+            expression(lvalue);
         }
         match(SEMICOLON);
     }
-    #ifdef DEBUG
-    cout << "statement" << endl;
-    #endif
+
 }
 
 void statements() {
-    #ifdef DEBUG
-    cout << "start statements" << endl;
-    #endif
+
     while(lookahead != RCURLY) {
         statement();
     }
-    #ifdef DEBUG
-    cout << "statement" << endl;
-    #endif
+
 }
 
 shared_ptr<Type> parameter() {
-    #ifdef DEBUG
-    cout << "start parameter" << endl;
-    #endif
+
 
     token_t typespec = specifier();
     unsigned indirection = pointers();
@@ -436,17 +431,13 @@ shared_ptr<Type> parameter() {
     shared_ptr<Type> type = make_shared<Type>(typespec, indirection);
     declareVariable(id, type);
 
-    #ifdef DEBUG
-    cout << "parameter" << endl;
-    #endif
+
 
     return type;
 }
 
 Parameters parameterList() {
-    #ifdef DEBUG
-    cout << "start parameters" << endl;
-    #endif
+
 
     Parameters types(1, parameter());
 
@@ -455,9 +446,7 @@ Parameters parameterList() {
         types.push_back(parameter());
     }
 
-    #ifdef DEBUG
-    cout << "parameters" << endl;
-    #endif
+
 
     return types;
 }

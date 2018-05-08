@@ -24,4 +24,28 @@ Type checkLogicalOr(const Type& left, const Type& right);
 
 Type checkLogicalAnd(const Type& left, const Type& right);
 
+Type checkLogicalEqComp(const Type& left, const Type& right, const std::string& op);
+
+Type checkAddition(const Type& left, const Type& right);
+
+Type checkSubtraction(const Type& left, const Type& right);
+
+Type checkMultiplication(const Type& left, const Type& right, const std::string& op);
+
+Type checkCast(const Type& left, const Type& right);
+
+Type checkReference(const Type& operand, const bool& lvalue);
+
+Type checkDereference(const Type& operand);
+
+Type checkNot(const Type& operand);
+
+Type checkNegate(const Type& operand);
+
+Type checkSizeOf(const Type& operand);
+
+Type checkIndex(const Type& left, const Type& right);
+
+Type checkFunctionCall(const Type& ret, const Parameters& args);
+
 #endif

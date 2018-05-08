@@ -56,13 +56,23 @@ token_t Type::specifier() const {
 unsigned Type::indirection() const {
     return _indirection;
 }
+Type Type::reference() const {
+    Type result = *this;
+    result._indirection++;
+    return result;
+}
+Type Type::dereference() const {
+    Type result = *this;
+    result._indirection--;
+    return result;
+}
 kind_t Type::kind() const {
     return _kind;
 }
 unsigned Type::length() const {
     return _length;
 }
-Parameters* Type::parameters() const {
+std::shared_ptr<Parameters> Type::parameters() const {
     return _parameters;
 }
 Type Type::promote() const {
@@ -79,4 +89,12 @@ bool Type::isNumeric() const {
 }
 bool Type::isLogical() const {
 	return _kind == SCALAR || _kind == ARRAY;
+}
+
+bool Type::isPointer() const {
+    return _indirection || _kind == ARRAY;
+}
+
+bool Type::isCompatibleWith(const Type& other) const {
+    return (isNumeric() && other.isNumeric()) || (isLogical() && other.isLogical() && _kind == other._kind);
 }

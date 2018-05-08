@@ -98,13 +98,135 @@ unsigned num_to_int(string num) {
 }
 
 Type checkLogicalOr(const Type& left, const Type& right) {
-	if(left.isLogical() && right.isLogical()) return Type(INT);
-	cout << "Invalid operands to binary || on line " << lineno << endl;
+	if(left.promote().isLogical() && right.promote().isLogical()) return Type(INT);
+	cout << "line " << lineno << ": invalid operands to binary ||" << endl;
 	return Type();
 }
 
 Type checkLogicalAnd(const Type& left, const Type& right) {
-	if(left.isLogical() && right.isLogical()) return Type(INT);
-	cout << "Invalid operands to binary && on line " << lineno << endl;
+	if(left.promote().isLogical() && right.promote().isLogical()) return Type(INT);
+	cout << "line " << lineno << ": invalid operands to binary &&" << endl;
 	return Type();
+}
+
+Type checkLogicalEqComp(const Type& left, const Type& right, const string& op) {
+	if(left.promote().isCompatibleWith(right.promote())) return Type(INT);
+	cout << "line " << lineno << ": invalid operands to binary " << op << "" << endl;
+	return Type();
+}
+
+Type checkAddition(const Type& left, const Type& right) {
+    auto lp = left.promote();
+    auto rp = right.promote();
+    if(lp.isNumeric() && rp.isNumeric()) {
+        if(lp.specifier() == LONG || rp.specifier() == LONG) return Type(LONG);
+        else return Type(INT);
+    }
+    if(lp.isPointer() && rp.isNumeric()) return lp;
+    if(lp.isNumeric() && rp.isPointer()) return rp;
+    cout << "line " << lineno << ": invalid operands to binary +" << endl;
+    return Type();
+}
+
+Type checkSubtraction(const Type& left, const Type& right) {
+    auto lp = left.promote();
+    auto rp = right.promote();
+    if(lp.isNumeric() && rp.isNumeric()) {
+        if(lp.specifier() == LONG || rp.specifier() == LONG) return Type(LONG);
+        else return Type(INT);
+    }
+    if(lp.isPointer() && rp.isNumeric()) return lp;
+    if(lp.isPointer() && rp.isPointer()) return Type(LONG);
+    cout << "line " << lineno << ": invalid operands to binary -" << endl;
+    return Type();
+}
+
+Type checkMultiplication(const Type& left, const Type& right, const string& op) {
+    auto lp = left.promote();
+    auto rp = right.promote();
+    if(lp.isNumeric() && rp.isNumeric()) {
+        if(lp.specifier() == LONG || rp.specifier() == LONG) return Type(LONG);
+        else return Type(INT);
+    }
+    cout << "line " << lineno << ": invalid operands to binary " << op << "on line " << lineno << endl;
+    return Type();
+}
+
+Type checkCast(const Type& to, const Type& from) {
+    if(to.promote().isNumeric() && from.promote().isNumeric()) return to;
+    if(to.promote().isPointer() && from.promote().isPointer()) return to;
+    if(to.promote().isPointer() && from.promote().specifier() == LONG) return to;
+    if(to.promote().specifier() == LONG && from.promote().isPointer()) return to;
+    cout << "line " << lineno << ": invalid operand in cast expression" << endl;
+    return Type();
+}
+
+Type checkReference(const Type& operand, const bool& lvalue) {
+    if(lvalue) {
+        return operand.reference();
+    }
+    else {
+        cout << "line " << lineno << ": lvalue required in expression" << endl;
+        return Type();
+    }
+}
+
+Type checkDereference(const Type& operand) {
+    if(operand.promote().isPointer()) {
+        return operand.promote().dereference();
+    }
+    else {
+        cout << "line " << lineno << ": invalid operand to unary *" << endl;
+        return Type();
+    }
+}
+
+Type checkNot(const Type& operand) {
+    if(operand.isLogical()) return Type(INT);
+    else {
+        cout << "line " << lineno << ": invalid operand to unary !" << endl;
+        return Type();
+    }
+}
+
+Type checkNegate(const Type& operand) {
+    if(operand.isNumeric()) return operand.promote();
+    else {
+        cout << "line " << lineno << ": invalid operand to unary -" << endl;
+        return Type();
+    }
+}
+
+Type checkSizeOf(const Type& operand) {
+    if(operand.kind() != FUNCTION) {
+        return Type(LONG);
+    }
+    else {
+        cout << "line " << lineno << ": invalid operand in sizeof expression" << endl;
+        return Type();
+    }
+}
+
+Type checkIndex(const Type& left, const Type& right) {
+    if(left.promote().isPointer() && right.promote().isNumeric()) return left.promote().dereference();
+    else {
+        cout << "line " << lineno << ": invalid operands to binary []" << endl;
+        return Type();
+    }
+}
+
+Type checkFunctionCall(const Type& ret, const Parameters& args) {
+    if(ret.kind() == FUNCTION) {
+        if(*ret.parameters() == args) {
+            return Type(ret.specifier(), ret.indirection());
+        }
+        else {
+            cout << "line " << lineno << ": invalid arguments to called function" << endl;
+            return Type();
+        }
+    }
+    else {
+        cout << "line " << lineno << ": called object is not a function" << endl;
+        return Type();
+    }
 }
