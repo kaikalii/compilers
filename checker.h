@@ -19,4 +19,8 @@ void defineFunction(std::string id, std::shared_ptr<Type> type);
 
 unsigned num_to_int(std::string num);
 
+Type checkLogicalOr(const Type& left, const Type& right);
+
+Type checkLogicalAnd(const Type& left, const Type& right);
+
 #endif

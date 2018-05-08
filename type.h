@@ -8,7 +8,7 @@
 
 typedef std::vector<std::shared_ptr<class Type> > Parameters;
 
-enum kind_t { ARRAY, FUNCTION, SCALAR };
+enum kind_t { ERROR, ARRAY, FUNCTION, SCALAR };
 
 class Type {
 private:
@@ -18,6 +18,7 @@ kind_t _kind;
 unsigned _length;
 Parameters* _parameters;
 public:
+Type();
 Type(token_t specifier, unsigned indirection = 0);
 Type(token_t specifier, unsigned indirection, unsigned length);
 Type(token_t specifier, unsigned indirection, Parameters *parameters);
@@ -28,6 +29,9 @@ unsigned indirection() const;
 kind_t kind() const;
 unsigned length() const;
 Parameters* parameters() const;
+Type promote() const;
+bool isNumeric() const;
+bool isLogical() const;
 };
 
 std::ostream& operator<<(std::ostream& out, const Type& type);

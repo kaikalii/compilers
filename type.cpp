@@ -4,6 +4,7 @@
 
 using namespace std;
 
+Type::Type() : _kind(ERROR) {}
 Type::Type(token_t specifier, unsigned indirection) : _specifier(specifier), _indirection(indirection), _kind(SCALAR) {
 }
 Type::Type(token_t specifier, unsigned indirection, unsigned length) : _specifier(specifier), _indirection(indirection), _kind(ARRAY), _length(length) {
@@ -63,4 +64,19 @@ unsigned Type::length() const {
 }
 Parameters* Type::parameters() const {
     return _parameters;
+}
+Type Type::promote() const {
+	if(_kind == SCALAR && _indirection == 0 && _specifier == CHAR) {
+		return Type(INT);
+	}
+	if(_kind == ARRAY) {
+		return Type(_specifier, _indirection + 1);
+	}
+	return *this;
+}
+bool Type::isNumeric() const {
+	return _kind == SCALAR && _indirection == 0;
+}
+bool Type::isLogical() const {
+	return _kind == SCALAR || _kind == ARAY;
 }

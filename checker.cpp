@@ -33,7 +33,7 @@ void declareVariable(string id, std::shared_ptr<Type> type) {
     // check for the variable in the global scope
     auto global_scope = curr_scope;
     while(global_scope.enclosing()) global_scope = enclosing();
-    
+
 
     cout << "declaring " << spec_to_str(type->specifier()) << " " << string(type->indirection(), '*') << id;
     if(type->kind() == ARRAY) cout << "[" << type->length() << "]";
@@ -50,7 +50,7 @@ void defineFunction(std::string id, std::shared_ptr<Type> type) {
         if(i != type->parameters()->size() - 1) cout << ", ";
         i++;
     }
-    cout << ")" << endl;;
+    cout << ")" << endl;
 }
 
 unsigned num_to_int(string num) {
@@ -58,4 +58,16 @@ unsigned num_to_int(string num) {
         num.pop_back();
     }
     return stoi(num);
+}
+
+Type checkLogicalOr(const Type& left, const Type& right) {
+	if(left.isLogical() && right.isLogical()) return Type(INT);
+	cout << "Invalid operands to binary || on line " << lineno << endl;
+	return Type();
+}
+
+Type checkLogicalAnd(const Type& left, const Type& right) {
+	if(left.isLogical() && right.isLogical()) return Type(INT);
+	cout << "Invalid operands to binary && on line " << lineno << endl;
+	return Type();
 }
