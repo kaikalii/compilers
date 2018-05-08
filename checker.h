@@ -4,8 +4,9 @@
 #include <string>
 #include <memory>
 #include "type.h"
+#include "scope.h"
 
-extern std::shared_ptr<Scope> curr_scope;
+extern std::shared_ptr<Scope> global_scope, curr_scope;
 
 void openScope();
 
