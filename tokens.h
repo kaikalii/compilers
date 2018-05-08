@@ -60,7 +60,6 @@ enum token_t {
     ID,
     NUM,
     STRING,
-    ERROR,
     DONE
 };
 

@@ -78,5 +78,5 @@ bool Type::isNumeric() const {
 	return _kind == SCALAR && _indirection == 0;
 }
 bool Type::isLogical() const {
-	return _kind == SCALAR || _kind == ARAY;
+	return _kind == SCALAR || _kind == ARRAY;
 }
