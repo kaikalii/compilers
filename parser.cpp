@@ -27,7 +27,7 @@ void match(token_t t) {
         if(lookahead == t) lookahead = lexan(lexbuf);
         else {
             cout << "error on line: " << lineno << endl;
-            cout << "expected token " << t + 8 << ", found token " << lookahead + 8 << endl;
+            cout << "expected token " << t << ", found token " << lookahead << endl;
             lookahead = lexan(lexbuf);
         }
     }
@@ -70,9 +70,9 @@ Type term(bool& lvalue) {
     Type type = Type();
     if(lookahead == ID) {
         auto symbol = curr_scope->lookup(lexbuf);
-        if(!symbol) cerr << "line " << lineno << ": '" << lexbuf << "' undeclared" << endl;
+        if(!symbol) cout << "line " << lineno << ": '" << lexbuf << "' undeclared" << endl;
         type = *symbol->type();
-        if(type.kind() == SCALAR) lvalue = true;
+        lvalue = type.kind() == SCALAR;
         match(ID);
         if(lookahead == LPAREN) {
             lvalue = false;
@@ -140,12 +140,14 @@ Type expUn(bool& lvalue) {
         Type operand = expUn(lvalue);
         operand = checkNot(operand);
         lvalue = false;
+        return operand;
 
     } else if(lookahead == MINUS) {
         match(MINUS);
         Type operand = expUn(lvalue);
         operand = checkNegate(operand);
         lvalue = false;
+        return operand;
 
     } else if(lookahead == SIZEOF) {
         match(SIZEOF);
@@ -154,15 +156,16 @@ Type expUn(bool& lvalue) {
             match(LPAREN);
             token_t spec = specifier();
             unsigned indirection = pointers();
-            match(RPAREN);
             operand = Type(spec, indirection);
+            operand = checkSizeOf(operand);
+            match(RPAREN);
         } else {
             operand = expUn(lvalue);
+            operand = checkSizeOf(operand);
         }
         lvalue = false;
         return operand;
-    }
-    return expIndex(lvalue);
+    } else return expIndex(lvalue);
 }
 
 Type expCast(bool& lvalue) {
@@ -371,52 +374,57 @@ void declarations() {
 
 }
 
-void statements();
+void statements(const Type& ret_type);
 
-void statement() {
+void statement(const Type& ret_type) {
     bool lvalue;
     if(lookahead == LCURLY) {
         openScope();
         match(LCURLY);
         declarations();
-        statements();
+        statements(ret_type);
         match(RCURLY);
         closeScope();
     } else if(lookahead == RETURN) {
         match(RETURN);
-        expression(lvalue);
+        if(!expression(lvalue).isCompatibleWith(ret_type)) cerr << "line " << lineno << ": invalid return type" << endl;
         match(SEMICOLON);
     } else if(lookahead == WHILE) {
         match(WHILE);
         match(LPAREN);
-        expression(lvalue);
+        if(!expression(lvalue).isLogical()) cerr << "line " << lineno << ": invalid type for test expression" << endl;
         match(RPAREN);
-        statement();
+        statement(ret_type);
     } else if(lookahead == IF) {
         match(IF);
         match(LPAREN);
-        expression(lvalue);
+        if(!expression(lvalue).isLogical()) cerr << "line " << lineno << ": invalid type for test expression" << endl;
         match(RPAREN);
-        statement();
+        statement(ret_type);
         if(lookahead == ELSE) {
             match(ELSE);
-            statement();
+            statement(ret_type);
         }
     } else {
-        expression(lvalue);
+        Type left = expression(lvalue);
         if(lookahead == ASSIGN) {
             match(ASSIGN);
-            expression(lvalue);
+            bool trash;
+            Type right = expression(trash);
+            if(lvalue) {
+                if(left.kind() != ERROR && right.kind() != ERROR && !left.isCompatibleWith(right)) cerr << "line " << lineno << ": invalid operands to binary =" << endl;
+            }
+            else cerr << "line " << lineno << ": lvalue required in expression" << endl;
         }
         match(SEMICOLON);
     }
 
 }
 
-void statements() {
+void statements(const Type& ret_type) {
 
     while(lookahead != RCURLY) {
-        statement();
+        statement(ret_type);
     }
 
 }
@@ -454,7 +462,7 @@ Parameters parameterList() {
 Parameters parameters() {
     if(lookahead == VOID) {
         match(VOID);
-        return Parameters(1, make_shared<Type>(VOID));
+        return Parameters();
     }
     return parameterList();
 }
@@ -494,7 +502,7 @@ void translationUnit() {
             defineFunction(id, make_shared<Type>(typespec, indirection, new Parameters(function_parameters)));
             match(LCURLY);
             declarations();
-            statements();
+            statements(Type(typespec, indirection));
             match(RCURLY);
             closeScope();
         } else {

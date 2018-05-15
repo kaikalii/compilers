@@ -40,7 +40,7 @@ std::ostream& operator<<(std::ostream& out, const Type& type) {
     case LONG: out << "long"; break;
     default: out << "error";
     }
-    if(type.indirection()) {
+    if(type.indirection() && type.kind() != ERROR) {
         out << " ";
         out << string(type.indirection(), '*');
     }
@@ -96,5 +96,7 @@ bool Type::isPointer() const {
 }
 
 bool Type::isCompatibleWith(const Type& other) const {
-    return (isNumeric() && other.isNumeric()) || (isLogical() && other.isLogical() && _kind == other._kind);
+    Type p = promote();
+    Type op = other.promote();
+    return (p.isNumeric() && op.isNumeric()) || (p.isLogical() && p == op );
 }

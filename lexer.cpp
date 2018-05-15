@@ -149,7 +149,9 @@ token_t lexan(std::string &lexbuf) {
             case '/': {
                 if(cin.peek() == '*') {
                     cin.get();
-                    while(!(cin.get() == '*' && cin.peek() == '/')) {
+                    char check;
+                    while(!((check = cin.get()) == '*' && cin.peek() == '/')) {
+                        if(check == '\n') lineno++;
                         if(cin.peek() == EOF) break;
                     }
                     cin.get();

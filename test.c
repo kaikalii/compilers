@@ -1,7 +1,7 @@
 #include <stdio.h>
 
-int main(void) {
-    int a[5] = {1, 2, 3, 4, 5};
-    printf("%d\n", *a);
+int main(int argc, char** argv) {
+    if(argc) main(argc - 1, argv);
+    printf("%d\n", argc);
     return 0;
 }
