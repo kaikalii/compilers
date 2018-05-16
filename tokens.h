@@ -16,7 +16,7 @@ enum token_t {
     LPAREN = '(', RPAREN = ')', LBRACKET = '[', RBRACKET = ']',
     LCURLY = '{', RCURLY = '}', SEMICOLON = ';', COLON = ':', COMMA = ',',
 
-    AUTO   = 256,
+    AUTO = 256,
     BREAK,
     CASE,
     CHAR,
@@ -47,7 +47,6 @@ enum token_t {
     VOID,
     VOLATILE,
     WHILE,
-
     OR,
     AND,
     EQL,

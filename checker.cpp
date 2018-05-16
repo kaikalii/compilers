@@ -230,6 +230,8 @@ Type checkIndex(const Type& left, const Type& right) {
 }
 
 Type checkFunctionCall(const Type& ret, const Parameters& args) {
+    if(ret.kind() == ERROR) return Type();
+    for(auto &a: args) if(a->kind() == ERROR) return Type();
     if(ret.kind() == FUNCTION) {
         if(!ret.parameters()) return Type(ret.specifier(), ret.indirection());
         if(ret.parameters()->size() != args.size()) {
