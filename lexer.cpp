@@ -71,8 +71,7 @@ static struct {
  *		You just can't beat C for doing things down and dirty.
  */
 
-void report(const string &str, const string &arg)
-{
+void report(const string &str, const string &arg) {
     char buf[1000];
 
     snprintf(buf, sizeof(buf), str.c_str(), arg.c_str());
@@ -88,8 +87,7 @@ void report(const string &str, const string &arg)
  *		stored in a buffer.
  */
 
-int lexan(string &lexbuf)
-{
+int lexan(string &lexbuf) {
     int p;
     unsigned i;
     static int c = cin.get();

@@ -24,8 +24,7 @@
  */
 
 Scope::Scope(Scope *enclosing)
-    : _enclosing(enclosing)
-{
+    : _enclosing(enclosing) {
 }
 
 
@@ -37,8 +36,7 @@ Scope::Scope(Scope *enclosing)
  */
 
 
-void Scope::insert(Symbol *symbol)
-{
+void Scope::insert(Symbol *symbol) {
     assert(find(symbol->name()) == nullptr);
     _symbols.push_back(symbol);
 }
@@ -69,8 +67,7 @@ Symbol *Scope::find(const string &name) const
  *		And, yes, I still didn't use an iterator.  So sue me.
  */
 
-void Scope::remove(const string &name)
-{
+void Scope::remove(const string &name) {
     for (unsigned i = 0; i < _symbols.size(); i ++)
 	if (name == _symbols[i]->name())
 	    _symbols.erase(_symbols.begin() + i);

@@ -28,8 +28,7 @@ static Statement *statement();
  * Description:	Report a syntax error to standard error.
  */
 
-static void error()
-{
+static void error() {
     if (lookahead == DONE)
 	report("syntax error at end of file");
     else
@@ -47,8 +46,7 @@ static void error()
  *		program since our parser does not do error recovery.
  */
 
-static void match(int t)
-{
+static void match(int t) {
     if (lookahead != t)
 	error();
 
@@ -68,8 +66,7 @@ static void match(int t)
  *		that match() will later return it.
  */
 
-static int peek()
-{
+static int peek() {
     if (!nexttoken)
 	nexttoken = lexan(nextbuf);
 
@@ -83,8 +80,7 @@ static int peek()
  * Description:	Match the next token as a number and return its value.
  */
 
-static unsigned long number()
-{
+static unsigned long number() {
     string buf;
 
 
@@ -100,8 +96,7 @@ static unsigned long number()
  * Description:	Match the next token as an identifier and return its name.
  */
 
-static string identifier()
-{
+static string identifier() {
     string buf;
 
 
@@ -117,8 +112,7 @@ static string identifier()
  * Description:	Return whether the given token is a type specifier.
  */
 
-static bool isSpecifier(int token)
-{
+static bool isSpecifier(int token) {
     return token == CHAR || token == INT || token == LONG;
 }
 
@@ -134,8 +128,7 @@ static bool isSpecifier(int token)
  *		  long
  */
 
-static int specifier()
-{
+static int specifier() {
     int typespec = ERROR;
 
 
@@ -159,8 +152,7 @@ static int specifier()
  *		  * pointers
  */
 
-static unsigned pointers()
-{
+static unsigned pointers() {
     unsigned count = 0;
 
 
@@ -184,8 +176,7 @@ static unsigned pointers()
  *		  pointers identifier [ num ]
  */
 
-static void declarator(int typespec)
-{
+static void declarator(int typespec) {
     unsigned indirection;
     string name;
 
@@ -218,8 +209,7 @@ static void declarator(int typespec)
  *		  declarator , declarator-list
  */
 
-static void declaration()
-{
+static void declaration() {
     int typespec;
 
 
@@ -245,8 +235,7 @@ static void declaration()
  *		  declaration declarations
  */
 
-static void declarations()
-{
+static void declarations() {
     while (isSpecifier(lookahead))
 	declaration();
 }
@@ -270,8 +259,7 @@ static void declarations()
  *		  expression , expression-list
  */
 
-static Expression *primaryExpression()
-{
+static Expression *primaryExpression() {
     Expressions args;
     Expression *expr;
     Symbol *symbol;
@@ -330,8 +318,7 @@ static Expression *primaryExpression()
  *		  postfix-expression [ expression ]
  */
 
-static Expression *postfixExpression()
-{
+static Expression *postfixExpression() {
     Expression *left, *right;
 
 
@@ -363,8 +350,7 @@ static Expression *postfixExpression()
  *		  sizeof ( specifier pointers )
  */
 
-static Expression *unaryExpression()
-{
+static Expression *unaryExpression() {
     Expression *expr;
     unsigned indirection;
     int typespec;
@@ -424,8 +410,7 @@ static Expression *unaryExpression()
  *		  ( specifier pointers ) cast-expression
  */
 
-static Expression *castExpression()
-{
+static Expression *castExpression() {
     Expression *expr;
     unsigned indirection;
     int typespec;
@@ -458,8 +443,7 @@ static Expression *castExpression()
  *		  multiplicative-expression % cast-expression
  */
 
-static Expression *multiplicativeExpression()
-{
+static Expression *multiplicativeExpression() {
     Expression *left, *right;
 
 
@@ -500,8 +484,7 @@ static Expression *multiplicativeExpression()
  *		  additive-expression - multiplicative-expression
  */
 
-static Expression *additiveExpression()
-{
+static Expression *additiveExpression() {
     Expression *left, *right;
 
 
@@ -541,8 +524,7 @@ static Expression *additiveExpression()
  *		  relational-expression >= additive-expression
  */
 
-static Expression *relationalExpression()
-{
+static Expression *relationalExpression() {
     Expression *left, *right;
 
 
@@ -588,8 +570,7 @@ static Expression *relationalExpression()
  *		  equality-expression != relational-expression
  */
 
-static Expression *equalityExpression()
-{
+static Expression *equalityExpression() {
     Expression *left, *right;
 
 
@@ -625,8 +606,7 @@ static Expression *equalityExpression()
  *		  logical-and-expression && equality-expression
  */
 
-static Expression *logicalAndExpression()
-{
+static Expression *logicalAndExpression() {
     Expression *left, *right;
 
 
@@ -654,8 +634,7 @@ static Expression *logicalAndExpression()
  *		  expression || logical-and-expression
  */
 
-static Expression *expression()
-{
+static Expression *expression() {
     Expression *left, *right;
 
 
@@ -684,8 +663,7 @@ static Expression *expression()
  *		  statement statements
  */
 
-static Statements statements()
-{
+static Statements statements() {
     Statements stmts;
 
 
@@ -712,8 +690,7 @@ static Statements statements()
  *		  expression ;
  */
 
-static Statement *statement()
-{
+static Statement *statement() {
     Scope *decls;
     Statements stmts;
     Expression *expr;
@@ -729,7 +706,7 @@ static Statement *statement()
 	match('}');
 	return new Block(decls, stmts);
     }
-    
+
     if (lookahead == RETURN) {
 	match(RETURN);
 	expr = expression();
@@ -737,7 +714,7 @@ static Statement *statement()
 	match(';');
 	return new Return(expr);
     }
-    
+
     if (lookahead == WHILE) {
 	match(WHILE);
 	match('(');
@@ -747,7 +724,7 @@ static Statement *statement()
 	stmt = statement();
 	return new While(expr, stmt);
     }
-    
+
     if (lookahead == IF) {
 	match(IF);
 	match('(');
@@ -786,8 +763,7 @@ static Statement *statement()
  *		  specifier pointers ID
  */
 
-static Type parameter()
-{
+static Type parameter() {
     unsigned indirection;
     int typespec;
     string name;
@@ -818,8 +794,7 @@ static Type parameter()
  *		  parameter , parameter-list
  */
 
-static Parameters *parameters()
-{
+static Parameters *parameters() {
     Parameters *params = new Parameters();
 
 
@@ -852,8 +827,7 @@ static Parameters *parameters()
  *		  pointers identifier [ num ]
  */
 
-static void globalDeclarator(int typespec)
-{
+static void globalDeclarator(int typespec) {
     unsigned indirection;
     string name;
 
@@ -886,8 +860,7 @@ static void globalDeclarator(int typespec)
  * 		  , global-declarator remaining-declarators
  */
 
-static void remainingDeclarators(int typespec)
-{
+static void remainingDeclarators(int typespec) {
     while (lookahead == ',') {
 	match(',');
 	globalDeclarator(typespec);
@@ -905,12 +878,11 @@ static void remainingDeclarators(int typespec)
  * 		global-or-function:
  * 		  specifier pointers identifier remaining-decls
  * 		  specifier pointers identifier [ num ] remaining-decls
- * 		  specifier pointers identifier ( ) remaining-decls 
+ * 		  specifier pointers identifier ( ) remaining-decls
  * 		  specifier pointers identifier ( parameters ) { ... }
  */
 
-static void globalOrFunction()
-{
+static void globalOrFunction() {
     Scope *decls;
     Symbol *symbol;
     Statements stmts;
@@ -970,8 +942,7 @@ static void globalOrFunction()
  * Description:	Analyze the standard input stream.
  */
 
-int main()
-{
+int main() {
     openScope();
     lookahead = lexan(lexbuf);
 
