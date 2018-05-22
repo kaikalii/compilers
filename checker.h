@@ -1,51 +1,48 @@
-#ifndef CHECKER_H
-#define CHECKER_H
+/*
+ * File:	checker.h
+ *
+ * Description:	This file contains the public function declarations for the
+ *		semantic checker for Simple C.
+ */
 
-#include <string>
-#include <memory>
-#include "type.h"
-#include "scope.h"
+# ifndef CHECKER_H
+# define CHECKER_H
+# include "Scope.h"
+# include "Tree.h"
 
-extern std::shared_ptr<Scope> global_scope, curr_scope;
+Scope *openScope();
+Scope *closeScope();
 
-void openScope();
+Symbol *defineFunction(const std::string &name, const Type &type);
+Symbol *declareFunction(const std::string &name, const Type &type);
+Symbol *declareVariable(const std::string &name, const Type &type);
+Symbol *checkIdentifier(const std::string &name);
 
-void closeScope();
+Expression *checkCall(Symbol *symbol, Expressions &args);
+Expression *checkArray(Expression *left, Expression *right);
+Expression *checkNot(Expression *expr);
+Expression *checkNegate(Expression *expr);
+Expression *checkDereference(Expression *expr);
+Expression *checkAddress(Expression *expr);
+Expression *checkSizeof(Expression *expr);
+Expression *checkCast(const Type &type, Expression *expr);
+Expression *checkMultiply(Expression *left, Expression *right);
+Expression *checkDivide(Expression *left, Expression *right);
+Expression *checkRemainder(Expression *left, Expression *right);
+Expression *checkAdd(Expression *left, Expression *right);
+Expression *checkSubtract(Expression *left, Expression *right);
+Expression *checkLessThan(Expression *left, Expression *right);
+Expression *checkGreaterThan(Expression *left, Expression *right);
+Expression *checkLessOrEqual(Expression *left, Expression *right);
+Expression *checkGreaterOrEqual(Expression *left, Expression *right);
+Expression *checkEqual(Expression *left, Expression *right);
+Expression *checkNotEqual(Expression *left, Expression *right);
+Expression *checkLogicalAnd(Expression *left, Expression *right);
+Expression *checkLogicalOr(Expression *left, Expression *right);
 
-std::string spec_to_str(int t);
+Statement *checkAssignment(Expression *left, Expression *right);
 
-void declareVariable(std::string id, std::shared_ptr<Type> type);
+void checkReturn(Expression *&expr, const Type &type);
+void checkTest(Expression *&expr);
 
-void defineFunction(std::string id, std::shared_ptr<Type> type);
-
-unsigned num_to_int(std::string num);
-
-Type checkLogicalOr(const Type& left, const Type& right);
-
-Type checkLogicalAnd(const Type& left, const Type& right);
-
-Type checkLogicalEqComp(const Type& left, const Type& right, const std::string& op);
-
-Type checkAddition(const Type& left, const Type& right);
-
-Type checkSubtraction(const Type& left, const Type& right);
-
-Type checkMultiplication(const Type& left, const Type& right, const std::string& op);
-
-Type checkCast(const Type& left, const Type& right);
-
-Type checkReference(const Type& operand, const bool& lvalue);
-
-Type checkDereference(const Type& operand);
-
-Type checkNot(const Type& operand);
-
-Type checkNegate(const Type& operand);
-
-Type checkSizeOf(const Type& operand);
-
-Type checkIndex(const Type& left, const Type& right);
-
-Type checkFunctionCall(const Type& ret, const Parameters& args);
-
-#endif
+# endif /* CHECKER_H */

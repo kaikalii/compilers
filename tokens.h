@@ -10,56 +10,19 @@
 # ifndef TOKENS_H
 # define TOKENS_H
 
-enum token_t {
+enum {
     ASSIGN = '=', LTN = '<', GTN = '>', PLUS = '+', MINUS = '-',
-    STAR   = '*', DIV = '/', REM = '%', ADDR = '&', NOT = '!', PERIOD = '.',
-    LPAREN = '(', RPAREN = ')', LBRACKET = '[', RBRACKET = ']',
-    LCURLY = '{', RCURLY = '}', SEMICOLON = ';', COLON = ':', COMMA = ',',
+    STAR = '*', DIV = '/', REM = '%', ADDR = '&', NOT = '!', DOT = '.',
+    LPAREN = '(', RPAREN = ')', LBRACK = '[', RBRACK = ']',
+    LBRACE = '{', RBRACE = '}', SEMI = ';', COLON = ':', COMMA = ',',
 
-    AUTO = 256,
-    BREAK,
-    CASE,
-    CHAR,
-    CONST,
-    CONTINUE,
-    DEFAULT,
-    DO,
-    DOUBLE,
-    ELSE,
-    ENUM,
-    EXTERN,
-    FOR,
-    GOTO,
-    IF,
-    INT,
-    LONG,
-    REGISTER,
-    RETURN,
-    SHORT,
-    SIGNED,
-    SIZEOF,
-    STATIC,
-    STRUCT,
-    SWITCH,
-    TYPEDEF,
-    UNION,
-    UNSIGNED,
-    VOID,
-    VOLATILE,
-    WHILE,
-    OR,
-    AND,
-    EQL,
-    NEQ,
-    LEQ,
-    GEQ,
-    INC,
-    DEC,
-    ARROW,
-    ID,
-    NUM,
-    STRING,
-    DONE
+    AUTO = 256, BREAK, CASE, CHAR, CONST, CONTINUE, DEFAULT, DO, DOUBLE,
+    ELSE, ENUM, EXTERN, FLOAT, FOR, GOTO, IF, INT, LONG, REGISTER,
+    RETURN, SHORT, SIGNED, SIZEOF, STATIC, STRUCT, SWITCH, TYPEDEF,
+    UNION, UNSIGNED, VOID, VOLATILE, WHILE,
+
+    OR, AND, EQL, NEQ, LEQ, GEQ, INC, DEC, ARROW,
+    ID, NUM, STRING, ERROR, DONE
 };
 
 # endif /* TOKENS_H */

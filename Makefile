@@ -1,5 +1,11 @@
-all:
-	g++ -g -std=c++11 -o scc parser.cpp lexer.cpp type.cpp checker.cpp symbol.cpp scope.cpp
+CXX		= g++ -std=c++11
+CXXFLAGS	= -g -Wall
+OBJS		= Scope.o Symbol.o Tree.o Type.o checker.o lexer.o parser.o
+PROG		= scc
 
-debug:
-	g++ -g -std=c++11 -o scc -D DEBUG parser.cpp lexer.cpp type.cpp checker.cpp symbol.cpp scope.cpp
+all:		$(PROG)
+
+$(PROG):	$(OBJS)
+		$(CXX) -o $(PROG) $(OBJS)
+
+clean:;		$(RM) -f $(PROG) core *.o

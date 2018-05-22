@@ -1,543 +1,983 @@
-#include <string>
-#include <iostream>
-#include <assert.h>
-#include <memory>
+/*
+ * File:	parser.cpp
+ *
+ * Description:	This file contains the public and private function and
+ *		variable definitions for the recursive-descent parser for
+ *		Simple C.
+ */
 
-#include "type.h"
-#include "symbol.h"
-#include "scope.h"
-#include "lexer.h"
-#include "checker.h"
+# include <cstdlib>
+# include <iostream>
+# include "checker.h"
+# include "tokens.h"
+# include "lexer.h"
 
 using namespace std;
 
-token_t lookahead, nexttoken;
-string lexbuf, nextbuf;
-bool peeked = false;
-int	lineno = 1;
-shared_ptr<Scope> global_scope = make_shared<Scope>(nullptr);
-shared_ptr<Scope> curr_scope = global_scope;
+static int lookahead, nexttoken;
+static string lexbuf, nextbuf;
 
-void match(token_t t) {
-    if(peeked) {
-        lookahead = nexttoken;
-        lexbuf	  = nextbuf;
-        peeked	  = false;
-    } else {
-        if(lookahead == t) lookahead = lexan(lexbuf);
-        else {
-            cout << "error on line: " << lineno << endl;
-            cout << "expected token " << t << ", found token " << lookahead << endl;
-            lookahead = lexan(lexbuf);
-        }
-    }
+static Type returnType;
+static Expression *expression(), *castExpression();
+static Statement *statement();
+
+
+/*
+ * Function:	error
+ *
+ * Description:	Report a syntax error to standard error.
+ */
+
+static void error()
+{
+    if (lookahead == DONE)
+	report("syntax error at end of file");
+    else
+	report("syntax error at '%s'", lexbuf);
+
+    exit(EXIT_FAILURE);
 }
 
-token_t peek() {
-    if(!peeked) {
-        nexttoken = lexan(nextbuf);
-        peeked	  = true;
-    }
+
+/*
+ * Function:	match
+ *
+ * Description:	Match the next token against the specified token.  A
+ *		failure indicates a syntax error and will terminate the
+ *		program since our parser does not do error recovery.
+ */
+
+static void match(int t)
+{
+    if (lookahead != t)
+	error();
+
+    if (nexttoken) {
+	lookahead = nexttoken;
+	lexbuf = nextbuf;
+	nexttoken = 0;
+    } else
+	lookahead = lexan(lexbuf);
+}
+
+
+/*
+ * Function:	peek
+ *
+ * Description:	Return the next token in the input stream and save it so
+ *		that match() will later return it.
+ */
+
+static int peek()
+{
+    if (!nexttoken)
+	nexttoken = lexan(nextbuf);
+
     return nexttoken;
 }
 
-unsigned pointers() {
+
+/*
+ * Function:	number
+ *
+ * Description:	Match the next token as a number and return its value.
+ */
+
+static unsigned long number()
+{
+    string buf;
+
+
+    buf = lexbuf;
+    match(NUM);
+    return strtoul(buf.c_str(), NULL, 0);
+}
+
+
+/*
+ * Function:	identifier
+ *
+ * Description:	Match the next token as an identifier and return its name.
+ */
+
+static string identifier()
+{
+    string buf;
+
+
+    buf = lexbuf;
+    match(ID);
+    return buf;
+}
+
+
+/*
+ * Function:	isSpecifier
+ *
+ * Description:	Return whether the given token is a type specifier.
+ */
+
+static bool isSpecifier(int token)
+{
+    return token == CHAR || token == INT || token == LONG;
+}
+
+
+/*
+ * Function:	specifier
+ *
+ * Description:	Parse a type specifier.  Simple C has char, int, and long.
+ *
+ *		specifier:
+ *		  char
+ *		  int
+ *		  long
+ */
+
+static int specifier()
+{
+    int typespec = ERROR;
+
+
+    if (isSpecifier(lookahead)) {
+	typespec = lookahead;
+	match(lookahead);
+    } else
+	error();
+
+    return typespec;
+}
+
+
+/*
+ * Function:	pointers
+ *
+ * Description:	Parse pointer declarators (i.e., zero or more asterisks).
+ *
+ *		pointers:
+ *		  empty
+ *		  * pointers
+ */
+
+static unsigned pointers()
+{
     unsigned count = 0;
 
-    while(lookahead == STAR) {
-        match(STAR);
-        count++;
+
+    while (lookahead == '*') {
+	match('*');
+	count ++;
     }
+
     return count;
 }
 
-bool isSpecifier(token_t t) {
-    return t == token_t::INT || t == token_t::LONG || t == token_t::CHAR;
+
+/*
+ * Function:	declarator
+ *
+ * Description:	Parse a declarator, which in Simple C is either a scalar
+ *		variable or an array, with optional pointer declarators.
+ *
+ *		declarator:
+ *		  pointers identifier
+ *		  pointers identifier [ num ]
+ */
+
+static void declarator(int typespec)
+{
+    unsigned indirection;
+    string name;
+
+
+    indirection = pointers();
+    name = identifier();
+
+    if (lookahead == '[') {
+	match('[');
+	declareVariable(name, Type(typespec, indirection, number()));
+	match(']');
+
+    } else
+	declareVariable(name, Type(typespec, indirection));
 }
 
-token_t specifier() {
-    token_t temp = lookahead;
 
-    if(lookahead == token_t::INT) match(token_t::INT);
-    else if(lookahead == token_t::LONG) match(token_t::LONG);
-    else if(lookahead == token_t::CHAR) match(token_t::CHAR);
-    return temp;
-}
+/*
+ * Function:	declaration
+ *
+ * Description:	Parse a local variable declaration.  Global declarations
+ *		are handled separately since we need to detect a function
+ *		as a special case.
+ *
+ *		declaration:
+ *		  specifier declarator-list ;
+ *
+ *		declarator-list:
+ *		  declarator
+ *		  declarator , declarator-list
+ */
 
-Type expression(bool& lvalue);
-
-Type term(bool& lvalue) {
-    Type type = Type();
-    if(lookahead == ID) {
-        auto symbol = curr_scope->lookup(lexbuf);
-        if(!symbol) cout << "line " << lineno << ": '" << lexbuf << "' undeclared" << endl;
-        type = *symbol->type();
-        lvalue = type.kind() == SCALAR;
-        match(ID);
-        if(lookahead == LPAREN) {
-            lvalue = false;
-            Parameters params;
-            match(LPAREN);
-            if(lookahead == RPAREN) match(RPAREN);
-            else {
-                params.push_back(make_shared<Type>(expression(lvalue)));
-                while(lookahead == COMMA) {
-                    match(COMMA);
-                    params.push_back(make_shared<Type>(expression(lvalue)));
-                }
-                match(RPAREN);
-            }
-            type = checkFunctionCall(type, params);
-        }
-    }
-    else if(lookahead == NUM) {
-        if(lexbuf.back() == 'l' || lexbuf.back() == 'L') type = Type(LONG);
-        else type = Type(INT);
-        lvalue = false;
-        match(NUM);
-    }
-    else if(lookahead == STRING) {
-        type = Type(CHAR, 1);
-        lvalue = false;
-        match(STRING);
-    }
-    else if(lookahead == LPAREN) {
-        match(LPAREN);
-        type = expression(lvalue);
-        match(RPAREN);
-    }
-    return type;
-}
-
-Type expIndex(bool& lvalue) {
-    Type left = term(lvalue);
-    while(lookahead == LBRACKET) {
-        match(LBRACKET);
-        left = checkIndex(left, expression(lvalue));
-        lvalue = true;
-        match(RBRACKET);
-    }
-    return left;
-}
-
-Type expUn(bool& lvalue) {
-    if(lookahead == ADDR) {
-        match(ADDR);
-        Type operand = expUn(lvalue);
-        operand = checkReference(operand, lvalue);
-        lvalue = false;
-        return operand;
-
-    } else if(lookahead == STAR) {
-        match(STAR);
-        Type operand = expUn(lvalue);
-        operand = checkDereference(operand);
-        lvalue = true;
-        return operand;
-
-    } else if(lookahead == NOT) {
-        match(NOT);
-        Type operand = expUn(lvalue);
-        operand = checkNot(operand);
-        lvalue = false;
-        return operand;
-
-    } else if(lookahead == MINUS) {
-        match(MINUS);
-        Type operand = expUn(lvalue);
-        operand = checkNegate(operand);
-        lvalue = false;
-        return operand;
-
-    } else if(lookahead == SIZEOF) {
-        match(SIZEOF);
-        Type operand;
-        if(lookahead == LPAREN && isSpecifier(peek())) {
-            match(LPAREN);
-            token_t spec = specifier();
-            unsigned indirection = pointers();
-            operand = Type(spec, indirection);
-            operand = checkSizeOf(operand);
-            match(RPAREN);
-        } else {
-            operand = expUn(lvalue);
-            operand = checkSizeOf(operand);
-        }
-        lvalue = false;
-        return operand;
-    } else return expIndex(lvalue);
-}
-
-Type expCast(bool& lvalue) {
-    if(lookahead == LPAREN && isSpecifier(peek())) {
-        match(LPAREN);
-        token_t spec = specifier();
-        unsigned indirection = pointers();
-        match(RPAREN);
-        Type from = expCast(lvalue);
-        Type to = Type(spec, indirection);
-        to = checkCast(to, from);
-        lvalue = false;
-
-        return to;
-    }
-    else {
-        return expUn(lvalue);
-    }
-}
-
-Type expMul(bool& lvalue) {
-    Type left = expCast(lvalue);
-    while(1) {
-        if(lookahead == STAR) {
-            match(STAR);
-            Type right = expCast(lvalue);
-            left = checkMultiplication(left, right, "*");
-            lvalue = false;
-
-        } else if(lookahead == DIV) {
-            match(DIV);
-            Type right = expCast(lvalue);
-            left = checkMultiplication(left, right, "/");
-            lvalue = false;
-
-        } else if(lookahead == REM) {
-            match(REM);
-            Type right = expCast(lvalue);
-            left = checkMultiplication(left, right, "%");
-            lvalue = false;
-
-        } else break;
-    }
-    return left;
-}
-
-Type expAdd(bool& lvalue) {
-    Type left = expMul(lvalue);
-    while(1) {
-        if(lookahead == PLUS) {
-            match(PLUS);
-            Type right = expMul(lvalue);
-            left = checkAddition(left, right);
-            lvalue = false;
-
-        } else if(lookahead == MINUS) {
-            match(MINUS);
-            Type right = expMul(lvalue);
-            left = checkSubtraction(left, right);
-            lvalue = false;
-
-        } else break;
-    }
-    return left;
-}
-
-Type expComp(bool& lvalue) {
-    Type left = expAdd(lvalue);
-    while(1) {
-        if(lookahead == LTN) {
-            match(LTN);
-            Type right = expAdd(lvalue);
-            left = checkLogicalEqComp(left, right, "<");
-            lvalue = false;
-
-        } else if(lookahead == GTN) {
-            match(GTN);
-            Type right = expAdd(lvalue);
-            left = checkLogicalEqComp(left, right, ">");
-            lvalue = false;
-
-        } else if(lookahead == LEQ) {
-            match(LEQ);
-            Type right = expAdd(lvalue);
-            left = checkLogicalEqComp(left, right, "<=");
-            lvalue = false;
-
-        } else if(lookahead == GEQ) {
-            match(GEQ);
-            Type right = expAdd(lvalue);
-            left = checkLogicalEqComp(left, right, ">=");
-            lvalue = false;
-
-        } else break;
-    }
-    return left;
-}
-
-Type expEql(bool& lvalue) {
-    Type left = expComp(lvalue);
-    while(1) {
-        if(lookahead == EQL) {
-            match(EQL);
-            Type right = expComp(lvalue);
-            left = checkLogicalEqComp(left, right, "==");
-            lvalue = false;
-
-        } else if(lookahead == NEQ) {
-            match(NEQ);
-            Type right = expComp(lvalue);
-            left = checkLogicalEqComp(left, right, "!=");
-            lvalue = false;
-
-        } else break;
-    }
-    return left;
-}
-
-Type expAnd(bool& lvalue) {
-    Type left = expEql(lvalue);
-    while(lookahead == AND) {
-        match(AND);
-        Type right = expEql(lvalue);
-        left = checkLogicalAnd(left, right);
-        lvalue = false;
-
-    }
-    return left;
-}
-
-Type expOr(bool& lvalue) {
-    Type left = expAnd(lvalue);
-    while(lookahead == OR) {
-        match(OR);
-        Type right = expAnd(lvalue);
-        left = checkLogicalOr(left, right);
-        lvalue = false;
-
-    }
-    return left;
-}
-
-Type expression(bool& lvalue) {
-
-    Type result = expOr(lvalue);
-
-    return result;
-}
-
-void expList() {
-
-    bool lvalue;
-    expression(lvalue);
-    while(lookahead == COMMA) {
-        match(COMMA);
-        expression(lvalue);
-    }
-
-}
-
-void declarator(token_t typespec) {
+static void declaration()
+{
+    int typespec;
 
 
-    unsigned indirection = pointers();
-    if(lookahead == ID) {
-        string id = lexbuf;
-        match(ID);
-        if(lookahead == LBRACKET) {
-            match(LBRACKET);
-            declareVariable(id, make_shared<Type>(typespec, indirection, num_to_int(lexbuf)));
-            match(NUM);
-            match(RBRACKET);
-        } else declareVariable(id, make_shared<Type>(typespec, indirection));
-    }
-
-
-}
-
-void declaratorList(token_t typespec) {
-
-
+    typespec = specifier();
     declarator(typespec);
-    while(lookahead == COMMA) {
-        match(COMMA);
-        declarator(typespec);
+
+    while (lookahead == ',') {
+	match(',');
+	declarator(typespec);
     }
 
-
+    match(';');
 }
 
-void declaration() {
 
+/*
+ * Function:	declarations
+ *
+ * Description:	Parse a possibly empty sequence of declarations.
+ *
+ *		declarations:
+ *		  empty
+ *		  declaration declarations
+ */
 
-    token_t typespec = specifier();
-    declaratorList(typespec);
-    match(SEMICOLON);
-
-
+static void declarations()
+{
+    while (isSpecifier(lookahead))
+	declaration();
 }
 
-void declarations() {
 
-    while(isSpecifier(lookahead)) {
-        declaration();
-    }
+/*
+ * Function:	primaryExpression
+ *
+ * Description:	Parse a primary expression.
+ *
+ *		primary-expression:
+ *		  ( expression )
+ *		  identifier ( expression-list )
+ *		  identifier ( )
+ *		  identifier
+ *		  string
+ *		  num
+ *
+ *		expression-list:
+ *		  expression
+ *		  expression , expression-list
+ */
 
-}
+static Expression *primaryExpression()
+{
+    Expressions args;
+    Expression *expr;
+    Symbol *symbol;
 
-void statements(const Type& ret_type);
 
-void statement(const Type& ret_type) {
-    bool lvalue;
-    if(lookahead == LCURLY) {
-        openScope();
-        match(LCURLY);
-        declarations();
-        statements(ret_type);
-        match(RCURLY);
-        closeScope();
-    } else if(lookahead == RETURN) {
-        match(RETURN);
-        if(!expression(lvalue).isCompatibleWith(ret_type)) cerr << "line " << lineno << ": invalid return type" << endl;
-        match(SEMICOLON);
-    } else if(lookahead == WHILE) {
-        match(WHILE);
-        match(LPAREN);
-        if(!expression(lvalue).isLogical()) cerr << "line " << lineno << ": invalid type for test expression" << endl;
-        match(RPAREN);
-        statement(ret_type);
-    } else if(lookahead == IF) {
-        match(IF);
-        match(LPAREN);
-        if(!expression(lvalue).isLogical()) cerr << "line " << lineno << ": invalid type for test expression" << endl;
-        match(RPAREN);
-        statement(ret_type);
-        if(lookahead == ELSE) {
-            match(ELSE);
-            statement(ret_type);
-        }
+    if (lookahead == '(') {
+	match('(');
+	expr = expression();
+	match(')');
+
+    } else if (lookahead == STRING) {
+	expr = new String(lexbuf);
+	match(STRING);
+
+    } else if (lookahead == NUM) {
+	expr = new Number(lexbuf);
+	match(NUM);
+
+    } else if (lookahead == ID) {
+	symbol = checkIdentifier(identifier());
+
+	if (lookahead == '(') {
+	    match('(');
+
+	    if (lookahead != ')') {
+		args.push_back(expression());
+
+		while (lookahead == ',') {
+		    match(',');
+		    args.push_back(expression());
+		}
+	    }
+
+	    expr = checkCall(symbol, args);
+	    match(')');
+
+	} else
+	    expr = new Identifier(symbol);
+
     } else {
-        Type left = expression(lvalue);
-        if(lookahead == ASSIGN) {
-            match(ASSIGN);
-            bool trash;
-            Type right = expression(trash);
-            if(lvalue) {
-                if(left.kind() != ERROR && right.kind() != ERROR && !left.isCompatibleWith(right)) cerr << "line " << lineno << ": invalid operands to binary =" << endl;
-            }
-            else cerr << "line " << lineno << ": lvalue required in expression" << endl;
-        }
-        match(SEMICOLON);
+	expr = nullptr;
+	error();
     }
 
+    return expr;
 }
 
-void statements(const Type& ret_type) {
 
-    while(lookahead != RCURLY) {
-        statement(ret_type);
+/*
+ * Function:	postfixExpression
+ *
+ * Description:	Parse a postfix expression.
+ *
+ *		postfix-expression:
+ *		  primary-expression
+ *		  postfix-expression [ expression ]
+ */
+
+static Expression *postfixExpression()
+{
+    Expression *left, *right;
+
+
+    left = primaryExpression();
+
+    while (lookahead == '[') {
+	match('[');
+	right = expression();
+	left = checkArray(left, right);
+	match(']');
     }
 
+    return left;
 }
 
-shared_ptr<Type> parameter() {
+
+/*
+ * Function:	unaryExpression
+ *
+ * Description:	Parse a unary expression.
+ *
+ *		unary-expression:
+ *		  postfix-expression
+ *		  ! cast-expression
+ *		  - cast-expression
+ *		  * cast-expression
+ *		  & cast-expression
+ *		  sizeof unary-expression
+ *		  sizeof ( specifier pointers )
+ */
+
+static Expression *unaryExpression()
+{
+    Expression *expr;
+    unsigned indirection;
+    int typespec;
 
 
-    token_t typespec = specifier();
-    unsigned indirection = pointers();
-    string id = lexbuf;
-    match(ID);
-    shared_ptr<Type> type = make_shared<Type>(typespec, indirection);
-    declareVariable(id, type);
+    if (lookahead == '!') {
+	match('!');
+	expr = castExpression();
+	expr = checkNot(expr);
+
+    } else if (lookahead == '-') {
+	match('-');
+	expr = castExpression();
+	expr = checkNegate(expr);
+
+    } else if (lookahead == '*') {
+	match('*');
+	expr = castExpression();
+	expr = checkDereference(expr);
+
+    } else if (lookahead == '&') {
+	match('&');
+	expr = castExpression();
+	expr = checkAddress(expr);
+
+    } else if (lookahead == SIZEOF) {
+	match(SIZEOF);
+
+	if (lookahead == '(' && isSpecifier(peek())) {
+	    match('(');
+	    typespec = specifier();
+	    indirection = pointers();
+	    match(')');
+	    expr = new Number(Type(typespec, indirection).size());
+
+	} else {
+	    expr = unaryExpression();
+	    expr = checkSizeof(expr);
+	}
+
+    } else
+	expr = postfixExpression();
+
+    return expr;
+}
 
 
+/*
+ * Function:	castExpression
+ *
+ * Description:	Parse a cast expression.  If the token after the opening
+ *		parenthesis is not a type specifier, we could have a
+ *		parenthesized expression instead.
+ *
+ *		cast-expression:
+ *		  unary-expression
+ *		  ( specifier pointers ) cast-expression
+ */
 
+static Expression *castExpression()
+{
+    Expression *expr;
+    unsigned indirection;
+    int typespec;
+
+
+    if (lookahead == '(' && isSpecifier(peek())) {
+	match('(');
+	typespec = specifier();
+	indirection = pointers();
+	match(')');
+	expr = castExpression();
+	expr = checkCast(Type(typespec, indirection), expr);
+
+    } else
+	expr = unaryExpression();
+
+    return expr;
+}
+
+
+/*
+ * Function:	multiplicativeExpression
+ *
+ * Description:	Parse a multiplicative expression.
+ *
+ *		multiplicative-expression:
+ *		  cast-expression
+ *		  multiplicative-expression * cast-expression
+ *		  multiplicative-expression / cast-expression
+ *		  multiplicative-expression % cast-expression
+ */
+
+static Expression *multiplicativeExpression()
+{
+    Expression *left, *right;
+
+
+    left = castExpression();
+
+    while (1) {
+	if (lookahead == '*') {
+	    match('*');
+	    right = castExpression();
+	    left = checkMultiply(left, right);
+
+	} else if (lookahead == '/') {
+	    match('/');
+	    right = castExpression();
+	    left = checkDivide(left, right);
+
+	} else if (lookahead == '%') {
+	    match('%');
+	    right = castExpression();
+	    left = checkRemainder(left, right);
+
+	} else
+	    break;
+    }
+
+    return left;
+}
+
+
+/*
+ * Function:	additiveExpression
+ *
+ * Description:	Parse an additive expression.
+ *
+ *		additive-expression:
+ *		  multiplicative-expression
+ *		  additive-expression + multiplicative-expression
+ *		  additive-expression - multiplicative-expression
+ */
+
+static Expression *additiveExpression()
+{
+    Expression *left, *right;
+
+
+    left = multiplicativeExpression();
+
+    while (1) {
+	if (lookahead == '+') {
+	    match('+');
+	    right = multiplicativeExpression();
+	    left = checkAdd(left, right);
+
+	} else if (lookahead == '-') {
+	    match('-');
+	    right = multiplicativeExpression();
+	    left = checkSubtract(left, right);
+
+	} else
+	    break;
+    }
+
+    return left;
+}
+
+
+/*
+ * Function:	relationalExpression
+ *
+ * Description:	Parse a relational expression.  Note that Simple C does not
+ *		have shift operators, so we go immediately to additive
+ *		expressions.
+ *
+ *		relational-expression:
+ *		  additive-expression
+ *		  relational-expression < additive-expression
+ *		  relational-expression > additive-expression
+ *		  relational-expression <= additive-expression
+ *		  relational-expression >= additive-expression
+ */
+
+static Expression *relationalExpression()
+{
+    Expression *left, *right;
+
+
+    left = additiveExpression();
+
+    while (1) {
+	if (lookahead == '<') {
+	    match('<');
+	    right = additiveExpression();
+	    left = checkLessThan(left, right);
+
+	} else if (lookahead == '>') {
+	    match('>');
+	    right = additiveExpression();
+	    left = checkGreaterThan(left, right);
+
+	} else if (lookahead == LEQ) {
+	    match(LEQ);
+	    right = additiveExpression();
+	    left = checkLessOrEqual(left, right);
+
+	} else if (lookahead == GEQ) {
+	    match(GEQ);
+	    right = additiveExpression();
+	    left = checkGreaterOrEqual(left, right);
+
+	} else
+	    break;
+    }
+
+    return left;
+}
+
+
+/*
+ * Function:	equalityExpression
+ *
+ * Description:	Parse an equality expression.
+ *
+ *		equality-expression:
+ *		  relational-expression
+ *		  equality-expression == relational-expression
+ *		  equality-expression != relational-expression
+ */
+
+static Expression *equalityExpression()
+{
+    Expression *left, *right;
+
+
+    left = relationalExpression();
+
+    while (1) {
+	if (lookahead == EQL) {
+	    match(EQL);
+	    right = relationalExpression();
+	    left = checkEqual(left, right);
+
+	} else if (lookahead == NEQ) {
+	    match(NEQ);
+	    right = relationalExpression();
+	    left = checkNotEqual(left, right);
+
+	} else
+	    break;
+    }
+
+    return left;
+}
+
+
+/*
+ * Function:	logicalAndExpression
+ *
+ * Description:	Parse a logical-and expression.  Note that Simple C does
+ *		not have bitwise-and expressions.
+ *
+ *		logical-and-expression:
+ *		  equality-expression
+ *		  logical-and-expression && equality-expression
+ */
+
+static Expression *logicalAndExpression()
+{
+    Expression *left, *right;
+
+
+    left = equalityExpression();
+
+    while (lookahead == AND) {
+	match(AND);
+	right = equalityExpression();
+	left = checkLogicalAnd(left, right);
+    }
+
+    return left;
+}
+
+
+/*
+ * Function:	expression
+ *
+ * Description:	Parse an expression, or more specifically, a logical-or
+ *		expression, since Simple C does not allow comma or
+ *		assignment as an expression operator.
+ *
+ *		expression:
+ *		  logical-and-expression
+ *		  expression || logical-and-expression
+ */
+
+static Expression *expression()
+{
+    Expression *left, *right;
+
+
+    left = logicalAndExpression();
+
+    while (lookahead == OR) {
+	match(OR);
+	right = logicalAndExpression();
+	left = checkLogicalOr(left, right);
+    }
+
+    return left;
+}
+
+
+/*
+ * Function:	statements
+ *
+ * Description:	Parse a possibly empty sequence of statements.  Rather than
+ *		checking if the next token starts a statement, we check if
+ *		the next token ends the sequence, since a sequence of
+ *		statements is always terminated by a closing brace.
+ *
+ *		statements:
+ *		  empty
+ *		  statement statements
+ */
+
+static Statements statements()
+{
+    Statements stmts;
+
+
+    while (lookahead != '}')
+	stmts.push_back(statement());
+
+    return stmts;
+}
+
+
+/*
+ * Function:	statement
+ *
+ * Description:	Parse a statement.  Note that Simple C has so few
+ *		statements that we handle them all in this one function.
+ *
+ *		statement:
+ *		  { declarations statements }
+ *		  return expression ;
+ *		  while ( expression ) statement
+ *		  if ( expression ) statement
+ *		  if ( expression ) statement else statement
+ *		  expression = expression ;
+ *		  expression ;
+ */
+
+static Statement *statement()
+{
+    Scope *decls;
+    Statements stmts;
+    Expression *expr;
+    Statement *stmt;
+
+
+    if (lookahead == '{') {
+	match('{');
+	decls = openScope();
+	declarations();
+	stmts = statements();
+	closeScope();
+	match('}');
+	return new Block(decls, stmts);
+    }
+    
+    if (lookahead == RETURN) {
+	match(RETURN);
+	expr = expression();
+	checkReturn(expr, returnType);
+	match(';');
+	return new Return(expr);
+    }
+    
+    if (lookahead == WHILE) {
+	match(WHILE);
+	match('(');
+	expr = expression();
+	checkTest(expr);
+	match(')');
+	stmt = statement();
+	return new While(expr, stmt);
+    }
+    
+    if (lookahead == IF) {
+	match(IF);
+	match('(');
+	expr = expression();
+	checkTest(expr);
+	match(')');
+	stmt = statement();
+
+	if (lookahead != ELSE)
+	    return new If(expr, stmt, nullptr);
+
+	match(ELSE);
+	return new If(expr, stmt, statement());
+    }
+
+    expr = expression();
+
+    if (lookahead == '=') {
+	match('=');
+	stmt = checkAssignment(expr, expression());
+    } else
+	stmt = expr;
+
+    match(';');
+    return stmt;
+}
+
+
+/*
+ * Function:	parameter
+ *
+ * Description:	Parse a parameter, which in Simple C is always a scalar
+ *		variable with optional pointer declarators.
+ *
+ *		parameter:
+ *		  specifier pointers ID
+ */
+
+static Type parameter()
+{
+    unsigned indirection;
+    int typespec;
+    string name;
+
+
+    typespec = specifier();
+    indirection = pointers();
+    name = identifier();
+
+    Type type = Type(typespec, indirection);
+    declareVariable(name, type);
     return type;
 }
 
-Parameters parameterList() {
+
+/*
+ * Function:	parameters
+ *
+ * Description:	Parse the parameters of a function, but not the opening or
+ *		closing parentheses.
+ *
+ *		parameters:
+ *		  void
+ *		  parameter-list
+ *
+ *		parameter-list:
+ *		  parameter
+ *		  parameter , parameter-list
+ */
+
+static Parameters *parameters()
+{
+    Parameters *params = new Parameters();
 
 
-    Parameters types(1, parameter());
+    if (lookahead == VOID)
+	match(VOID);
 
-    while(lookahead == COMMA) {
-        match(COMMA);
-        types.push_back(parameter());
-    }
-
-
-
-    return types;
-}
-
-Parameters parameters() {
-    if(lookahead == VOID) {
-        match(VOID);
-        return Parameters();
-    }
-    return parameterList();
-}
-
-void globalDeclarator(token_t typespec) {
-    unsigned indirection = pointers();
-    string	 id			 = lexbuf;
-
-    match(ID);
-    if(lookahead == LPAREN) {
-        match(LPAREN);
-        match(RPAREN);
-        declareVariable(id, make_shared<Type>(typespec, indirection, nullptr));
-    } else if(lookahead == LBRACKET) {
-        match(LBRACKET);
-        declareVariable(id, make_shared<Type>(typespec, indirection, num_to_int(lexbuf)));
-        match(NUM);
-        match(RBRACKET);
-    }
     else {
-        declareVariable(id, make_shared<Type>(typespec, indirection));
+	params->push_back(parameter());
+
+	while (lookahead == ',') {
+	    match(',');
+	    params->push_back(parameter());
+	}
     }
+
+    return params;
 }
 
-void translationUnit() {
-    token_t	 typespec	 = specifier();
-    unsigned indirection = pointers();
-    string	 id			 = lexbuf;
 
-    match(ID);
-    if(lookahead == LPAREN) {
-        match(LPAREN);
-        if(lookahead != RPAREN) {
-            openScope();
-            auto function_parameters = parameters();
-            match(RPAREN);
-            defineFunction(id, make_shared<Type>(typespec, indirection, new Parameters(function_parameters)));
-            match(LCURLY);
-            declarations();
-            statements(Type(typespec, indirection));
-            match(RCURLY);
-            closeScope();
-        } else {
-            match(RPAREN);
-            declareVariable(id, make_shared<Type>(typespec, indirection, nullptr));
-            while(lookahead == COMMA) {
-                match(COMMA);
-                globalDeclarator(typespec);
-            }
-            match(SEMICOLON);
-        }
-    } else if(lookahead == LBRACKET) {
-        match(LBRACKET);
-        declareVariable(id, make_shared<Type>(typespec, indirection, num_to_int(lexbuf)));
-        match(NUM);
-        match(RBRACKET);
-        while(lookahead == COMMA) {
-            match(COMMA);
-            globalDeclarator(typespec);
-        }
-        match(SEMICOLON);
+/*
+ * Function:	globalDeclarator
+ *
+ * Description:	Parse a declarator, which in Simple C is either a scalar
+ *		variable, an array, or a function, with optional pointer
+ *		declarators.
+ *
+ *		global-declarator:
+ *		  pointers identifier
+ *		  pointers identifier ( )
+ *		  pointers identifier [ num ]
+ */
+
+static void globalDeclarator(int typespec)
+{
+    unsigned indirection;
+    string name;
+
+
+    indirection = pointers();
+    name = identifier();
+
+    if (lookahead == '(') {
+	match('(');
+	declareFunction(name, Type(typespec, indirection, nullptr));
+	match(')');
+
+    } else if (lookahead == '[') {
+	match('[');
+	declareVariable(name, Type(typespec, indirection, number()));
+	match(']');
+
+    } else
+	declareVariable(name, Type(typespec, indirection));
+}
+
+
+/*
+ * Function:	remainingDeclarators
+ *
+ * Description:	Parse any remaining global declarators after the first.
+ *
+ * 		remaining-declarators
+ * 		  ;
+ * 		  , global-declarator remaining-declarators
+ */
+
+static void remainingDeclarators(int typespec)
+{
+    while (lookahead == ',') {
+	match(',');
+	globalDeclarator(typespec);
+    }
+
+    match(';');
+}
+
+
+/*
+ * Function:	globalOrFunction
+ *
+ * Description:	Parse a global declaration or function definition.
+ *
+ * 		global-or-function:
+ * 		  specifier pointers identifier remaining-decls
+ * 		  specifier pointers identifier [ num ] remaining-decls
+ * 		  specifier pointers identifier ( ) remaining-decls 
+ * 		  specifier pointers identifier ( parameters ) { ... }
+ */
+
+static void globalOrFunction()
+{
+    Scope *decls;
+    Symbol *symbol;
+    Statements stmts;
+    Parameters *params;
+    Function *function;
+    unsigned indirection;
+    int typespec;
+    string name;
+
+
+    typespec = specifier();
+    indirection = pointers();
+    name = identifier();
+
+    if (lookahead == '[') {
+	match('[');
+	declareVariable(name, Type(typespec, indirection, number()));
+	match(']');
+	remainingDeclarators(typespec);
+
+    } else if (lookahead == '(') {
+	match('(');
+
+	if (lookahead == ')') {
+	    declareFunction(name, Type(typespec, indirection, nullptr));
+	    match(')');
+	    remainingDeclarators(typespec);
+
+	} else {
+	    decls = openScope();
+	    params = parameters();
+	    returnType = Type(typespec, indirection);
+	    symbol = defineFunction(name, Type(typespec, indirection, params));
+	    match(')');
+	    match('{');
+	    declarations();
+	    stmts = statements();
+	    closeScope();
+	    match('}');
+
+	    function = new Function(symbol, new Block(decls, stmts));
+
+	    if (numerrors == 0)
+		function->generate();
+	}
+
     } else {
-        declareVariable(id, make_shared<Type>(typespec, indirection));
-        while(lookahead == COMMA) {
-            match(COMMA);
-            globalDeclarator(typespec);
-        }
-        match(SEMICOLON);
+	declareVariable(name, Type(typespec, indirection));
+	remainingDeclarators(typespec);
     }
 }
 
-int main() {
+
+/*
+ * Function:	main
+ *
+ * Description:	Analyze the standard input stream.
+ */
+
+int main()
+{
+    openScope();
     lookahead = lexan(lexbuf);
-    while(lookahead != DONE) {
-        translationUnit();
-    }
-    return 0;
+
+    while (lookahead != DONE)
+	globalOrFunction();
+
+    closeScope();
+    exit(EXIT_SUCCESS);
 }
