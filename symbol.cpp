@@ -6,7 +6,7 @@
  *		consists of a name and a type.
  */
 
-# include "Symbol.h"
+# include "symbol.h"
 
 using std::string;
 

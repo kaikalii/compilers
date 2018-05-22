@@ -21,7 +21,7 @@
 
 # include <cassert>
 # include "tokens.h"
-# include "Type.h"
+# include "type.h"
 
 using namespace std;
 

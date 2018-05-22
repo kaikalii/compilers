@@ -1,5 +1,5 @@
 /*
- * File:	Tree.h
+ * File:	tree.h
  *
  * Description:	This file contains the class definitions for abstract
  *		syntax trees in Simple C.
@@ -17,7 +17,7 @@
  *		doesn't necessarily mesh well with a tree designed using
  *		object-orientation.  So, here is my compromise:
  *
- *		Tree.h - class definitions
+ *		tree.h - class definitions
  *		Tree.cpp - constructors and accessors
  *		allocator.cpp - member functions to do storage allocation
  *		generator.cpp - member functions to do code generation
@@ -27,7 +27,7 @@
 # define TREE_H
 # include <string>
 # include <vector>
-# include "Scope.h"
+# include "scope.h"
 
 typedef std::vector<class Statement *> Statements;
 typedef std::vector<class Expression *> Expressions;
@@ -337,6 +337,7 @@ class Function : public Node {
 
 public:
     Function(const Symbol *id, Block *body);
+    void generate();
 };
 
 # endif /* TREE_H */

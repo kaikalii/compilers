@@ -19,7 +19,7 @@
  *		- everything (it is optional to construct an AST)
  */
 
-# include "Tree.h"
+# include "tree.h"
 # include "tokens.h"
 # include <sstream>
 # include <cstdlib>

@@ -14,9 +14,9 @@
 # include "lexer.h"
 # include "checker.h"
 # include "tokens.h"
-# include "Symbol.h"
-# include "Scope.h"
-# include "Type.h"
+# include "symbol.h"
+# include "scope.h"
+# include "type.h"
 
 
 using namespace std;

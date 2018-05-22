@@ -1,5 +1,5 @@
 /*
- * File:	Scope.h
+ * File:	scope.h
  *
  * Description:	This file contains the class definition for scopes in
  *		Simple C.  A scope consists simply of a list of symbols.
@@ -16,7 +16,7 @@
 
 # ifndef SCOPE_H
 # define SCOPE_H
-# include "Symbol.h"
+# include "symbol.h"
 # include <vector>
 
 typedef std::vector<Symbol *> Symbols;

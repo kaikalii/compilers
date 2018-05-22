@@ -1,5 +1,5 @@
 /*
- * File:	Type.h
+ * File:	type.h
  *
  * Description:	This file contains the class definition for types in Simple
  *		C.  A type is either a scalar type, an array type, or a

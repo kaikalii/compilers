@@ -7,8 +7,8 @@
 
 # ifndef CHECKER_H
 # define CHECKER_H
-# include "Scope.h"
-# include "Tree.h"
+# include "scope.h"
+# include "tree.h"
 
 Scope *openScope();
 Scope *closeScope();

@@ -1,5 +1,5 @@
 /*
- * File:	Symbol.h
+ * File:	symbol.h
  *
  * Description:	This file contains the class definition for symbols in
  *		Simple C.  At this point, a symbol merely consists of a
@@ -9,7 +9,7 @@
 # ifndef SYMBOL_H
 # define SYMBOL_H
 # include <string>
-# include "Type.h"
+# include "type.h"
 
 class Symbol {
     typedef std::string string;
