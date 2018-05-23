@@ -32,7 +32,7 @@ typedef std::vector<class Type> Parameters;
 class Type {
     int _specifier;
     unsigned _indirection;
-    unsigned long _length;
+    unsigned long _length = 0;
     Parameters *_parameters;
 
     enum { ARRAY, ERROR, FUNCTION, SCALAR } _kind;
@@ -64,7 +64,7 @@ public:
     Type promote() const;
     Type deref() const;
 
-    unsigned size() const { return 1; /* fill this in later */ }
+    unsigned size() const;
 };
 
 std::ostream &operator <<(std::ostream &ostr, const Type &type);

@@ -20,6 +20,7 @@
  */
 
 # include <cassert>
+# include <algorithm>
 # include "tokens.h"
 # include "type.h"
 
@@ -307,6 +308,17 @@ Type Type::deref() const
     return Type(_specifier, _indirection - 1);
 }
 
+unsigned Type::size() const {
+    unsigned long length = 1;
+    if(_length > length) length = _length;
+    if(_kind == SCALAR || _kind == ARRAY) {
+        if(_indirection) return 8;
+        if(_specifier == CHAR) return length;
+        if(_specifier == INT) return 4 * length;
+        if(_specifier == LONG) return 8 * length;
+    }
+    return 0;
+}
 
 /*
  * Function:	operator <<

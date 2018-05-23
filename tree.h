@@ -27,6 +27,7 @@
 # define TREE_H
 # include <string>
 # include <vector>
+# include <iostream>
 # include "scope.h"
 
 typedef std::vector<class Statement *> Statements;
@@ -42,7 +43,7 @@ protected:
 
 public:
     virtual ~Node() {}
-    virtual void generate() {}
+    virtual void generate() {std::cout << "oops" << std::endl;}
 };
 
 
@@ -51,6 +52,7 @@ public:
 class Statement : public Node {
 protected:
     Statement() {}
+public:
 };
 
 
@@ -63,6 +65,7 @@ protected:
     Expression(const Type &type);
 
 public:
+    std::string _operand;
     const Type &type() const;
     bool lvalue() const;
 };
@@ -105,6 +108,7 @@ class Identifier : public Expression {
 public:
     Identifier(const Symbol *symbol);
     const Symbol *symbol() const;
+    virtual void generate();
 };
 
 
@@ -112,11 +116,11 @@ public:
 
 class Number : public Expression {
     string _value;
-
 public:
     Number(const string &value);
     Number(unsigned long value);
     const string &value() const;
+    virtual void generate();
 };
 
 
@@ -125,9 +129,9 @@ public:
 class Call : public Expression {
     const Symbol *_id;
     Expressions _args;
-
 public:
     Call(const Symbol *id, const Expressions &args, const Type &type);
+    virtual void generate();
 };
 
 
@@ -304,6 +308,7 @@ class Block : public Statement {
 public:
     Block(Scope *decls, const Statements &stmts);
     Scope *declarations() const;
+    virtual void generate();
 };
 
 
@@ -337,7 +342,7 @@ class Function : public Node {
 
 public:
     Function(const Symbol *id, Block *body);
-    void generate();
+    virtual void generate();
 };
 
 # endif /* TREE_H */
