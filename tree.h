@@ -43,7 +43,7 @@ protected:
 
 public:
     virtual ~Node() {}
-    virtual void generate() {std::cout << "oops" << std::endl;}
+    virtual void generate() {std::cout << "\toops" << std::endl;}
 };
 
 
@@ -286,6 +286,7 @@ class Assignment : public Statement {
 
 public:
     Assignment(Expression *left, Expression *right);
+    virtual void generate();
 };
 
 

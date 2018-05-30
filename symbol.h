@@ -16,7 +16,7 @@ class Symbol {
     string _name;
     Type _type;
 public:
-    std::string offset;
+    std::string _offset;
     Symbol(const string &name, const Type &type);
     const string &name() const;
     const Type &type() const;

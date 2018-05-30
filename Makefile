@@ -9,3 +9,10 @@ $(PROG):	$(OBJS)
 		$(CXX) -o $(PROG) $(OBJS)
 
 clean:;		$(RM) -f $(PROG) core *.o
+
+t:
+	all
+	./scc < test.c > test.s
+	gcc -S test.c -o gcc_test.s
+	gcc test.s -o test
+	./test

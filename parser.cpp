@@ -11,6 +11,7 @@
 # include "checker.h"
 # include "tokens.h"
 # include "lexer.h"
+# include "generator.h"
 
 using namespace std;
 
@@ -949,6 +950,6 @@ int main() {
     while (lookahead != DONE)
 	globalOrFunction();
 
-    closeScope();
+    declareGlobals(closeScope());
     exit(EXIT_SUCCESS);
 }

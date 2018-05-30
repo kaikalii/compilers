@@ -1,5 +1,7 @@
 int putchar();
-int f(int a, int b, int c, int d, int e, int f, int g, int h, int i) {
+int newline;
+int space;
+int foo(int a, int b, int c, int d, int e, int f, int g, int h, int i) {
     putchar(a);
     putchar(b);
     putchar(c);
@@ -12,6 +14,11 @@ int f(int a, int b, int c, int d, int e, int f, int g, int h, int i) {
 }
 
 int main(void) {
-    int x, y, z;
-    f(65, 66, 67, 68, 69, 70, 71, 72, 10);
+    int a, b, n;
+    a = 65;
+    b = 66;
+    n = 78;
+    space = 32;
+    newline = 10;
+    foo(a, space, b, 65, n, a, n, a, newline);
 }
