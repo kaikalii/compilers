@@ -34,42 +34,25 @@ void Function::generate() {
     << endl;
 
     // Calculate and assign offsets
-    unsigned neg_offset = 0;
-    unsigned pos_offset = 8;
+    unsigned offset = 0;
     auto& sym = _body->declarations()->symbols();
     for(unsigned i = 0; i < sym.size(); i++) {
-        unsigned size = sym[i]->type().size();
-        if(size < 8) size = 8;
-        // One of the first six parameters
-        if(i < 6) {
-            if(nextBoundary(neg_offset) - neg_offset < size) {
-                neg_offset = nextBoundary(neg_offset);
-            }
-            neg_offset += size;
-            sym[i]->_offset = "-" + to_string(neg_offset) + "(%rbp)";
-            cout << "\tmovq\t" << arg_reg[i] << ", " << sym[i]->_offset << endl;
+
+        if(i >= 6 && i < _id->type().parameters()->size()) {
+            sym[i]->_offset = 16 + 8 * (i - 6);
+        } else {
+            offset -= sym[i]->type().size();
+            sym[i]->_offset = offset;
         }
-        else if(i >= 6) {
-            // One of the parameters after the sixth
-            if(i < _id->type().parameters()->size()) {
-                if(nextBoundary(pos_offset) - pos_offset < size) {
-                    pos_offset = nextBoundary(pos_offset);
-                }
-                pos_offset += size;
-                sym[i]->_offset = to_string(pos_offset) + "(%rbp)";
-            }
-            // Local variables
-            else {
-                if(nextBoundary(neg_offset) - neg_offset < size) {
-                    neg_offset = nextBoundary(neg_offset);
-                }
-                neg_offset += size;
-                sym[i]->_offset = "-" + to_string(neg_offset) + "(%rbp)";
-            }
-        }
+
     }
-    neg_offset = nextBoundary(neg_offset);
-    cout << "\t.set\t" << _id->name() << ".size, " << neg_offset << endl << endl;
+    offset = nextBoundary(offset);
+
+    for(unsigned i = 0; i < min((size_t)6, _id->type().parameters()->size()); i++) {
+        cout << "\tmovl\t" << arg_reg[i] << ", " << sym[i]->_offset << "(%rbp)" << endl;
+    }
+
+    cout << "\t.set\t" << _id->name() << ".size, " << offset << endl << endl;
 
     // Call the body generator
     _body->generate();
