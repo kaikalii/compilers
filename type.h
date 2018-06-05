@@ -32,7 +32,7 @@ typedef std::vector<class Type> Parameters;
 class Type {
     int _specifier;
     unsigned _indirection;
-    unsigned long _length = 0;
+    unsigned long _length;
     Parameters *_parameters;
 
     enum { ARRAY, ERROR, FUNCTION, SCALAR } _kind;

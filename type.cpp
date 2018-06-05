@@ -20,7 +20,6 @@
  */
 
 # include <cassert>
-# include <algorithm>
 # include "tokens.h"
 # include "type.h"
 
@@ -34,7 +33,8 @@ using namespace std;
  */
 
 Type::Type()
-    : _kind(ERROR) {
+    : _kind(ERROR)
+{
 }
 
 
@@ -45,7 +45,8 @@ Type::Type()
  */
 
 Type::Type(int specifier, unsigned indirection)
-    : _specifier(specifier), _indirection(indirection), _kind(SCALAR) {
+    : _specifier(specifier), _indirection(indirection), _kind(SCALAR)
+{
 }
 
 
@@ -56,7 +57,8 @@ Type::Type(int specifier, unsigned indirection)
  */
 
 Type::Type(int specifier, unsigned indirection, unsigned long length)
-    : _specifier(specifier), _indirection(indirection), _length(length) {
+    : _specifier(specifier), _indirection(indirection), _length(length)
+{
     _kind = ARRAY;
 }
 
@@ -68,7 +70,8 @@ Type::Type(int specifier, unsigned indirection, unsigned long length)
  */
 
 Type::Type(int specifier, unsigned indirection, Parameters *parameters)
-    : _specifier(specifier), _indirection(indirection), _parameters(parameters) {
+    : _specifier(specifier), _indirection(indirection), _parameters(parameters)
+{
     _kind = FUNCTION;
 }
 
@@ -308,17 +311,6 @@ Type Type::deref() const
     return Type(_specifier, _indirection - 1);
 }
 
-unsigned Type::size() const {
-    unsigned long length = 1;
-    if(_length > length) length = _length;
-    if(_kind == SCALAR || _kind == ARRAY) {
-        if(_indirection) return 8;
-        if(_specifier == CHAR) return length;
-        if(_specifier == INT) return 4 * length;
-        if(_specifier == LONG) return 8 * length;
-    }
-    return 0;
-}
 
 /*
  * Function:	operator <<
@@ -327,7 +319,8 @@ unsigned Type::size() const {
  *		let's us do some cool things.
  */
 
-ostream &operator <<(ostream &ostr, const Type &type) {
+ostream &operator <<(ostream &ostr, const Type &type)
+{
     if (type.specifier() == CHAR)
 	ostr << "char";
     else if (type.specifier() == INT)

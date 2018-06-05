@@ -1,128 +1,313 @@
-#include <iostream>
-#include <cmath>
-#include "tree.h"
-#include "scope.h"
-#include "generator.h"
+/*
+ * File:	generator.cpp
+ *
+ * Description:	This file contains the public and member function
+ *		definitions for the code generator for Simple C.
+ *
+ *		Extra functionality:
+ *		- putting all the global declarations at the end
+ */
+
+# include <sstream>
+# include <iostream>
+# include "generator.h"
+# include "register.h"
+# include "machine.h"
+# include "tree.h"
 
 using namespace std;
 
-vector<string> arg_reg = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
 
-unsigned nextBoundary(unsigned x) {
-    return ceil(float(x)/16.f) * 16.f;
+/* This needs to be set to zero if temporaries are placed on the stack. */
+
+# define SIMPLE_PROLOGUE 1
+
+
+/* Okay, I admit it ... these are lame, but they work. */
+
+# define isNumber(expr)		(expr->_operand[0] == '$')
+# define isRegister(expr)	(expr->_register != nullptr)
+# define isMemory(expr)		(!isNumber(expr) && !isRegister(expr))
+
+
+/* The registers that we are using in the assignment. */
+
+static Register *rax = new Register("%rax", "%eax", "%al");
+static Register *rdi = new Register("%rdi", "%edi", "%dil");
+static Register *rsi = new Register("%rsi", "%esi", "%sil");
+static Register *rdx = new Register("%rdx", "%edx", "%dl");
+static Register *rcx = new Register("%rcx", "%ecx", "%cl");
+static Register *r8 = new Register("%r8", "%r8d", "%r8b");
+static Register *r9 = new Register("%r9", "%r9d", "%r9b");
+static Register *parameters[] = {rdi, rsi, rdx, rcx, r8, r9};
+
+
+/*
+ * Function:	suffix (private)
+ *
+ * Description:	Return the suffix for an opcode based on the given size.
+ */
+
+static string suffix(unsigned size)
+{
+    return size == 1 ? "b\t" : (size == 4 ? "l\t" : "q\t");
 }
 
-void declareGlobals(Scope *scope) {
-    bool globals_declared = false;
-    for(auto &sym: scope->symbols()) {
-        if(!sym->type().isFunction()) {
-            if(!globals_declared) globals_declared = true, cout << "# declare globals" << endl;
-            cout << ".comm\t" << sym->name() << "," << sym->type().size() << "," << sym->type().size() << endl;
-        }
-    }
+
+/*
+ * Function:	align (private)
+ *
+ * Description:	Return the number of bytes necessary to align the given
+ *		offset on the stack.
+ */
+
+static int align(int offset)
+{
+    if (offset % STACK_ALIGNMENT == 0)
+	return 0;
+
+    return STACK_ALIGNMENT - (abs(offset) % STACK_ALIGNMENT);
 }
 
-void Function::generate() {
 
-    // Generate the prologue
-    cout <<
-        _id->name() << ":\n"
-        "\t# " << _id->name() << "() prologue\n" <<
-        "\tpushq\t%rbp\n"
-        "\tmovq\t%rsp, %rbp\n"
-        "\tsubq\t$" << _id->name() << ".size, %rsp\n"
-    << endl;
+/*
+ * Function:	operator << (private)
+ *
+ * Description:	Write an expression to the specified stream.  This function
+ *		first checks to see if the expression is in a register, and
+ *		if not then uses its operand.
+ */
 
-    // Calculate and assign offsets
-    unsigned neg_offset = 0;
-    unsigned pos_offset = 8;
-    auto& sym = _body->declarations()->symbols();
-    for(unsigned i = 0; i < sym.size(); i++) {
-        unsigned size = sym[i]->type().size();
-        if(size < 8) size = 8;
-        // One of the first six parameters
-        if(i < 6) {
-            if(nextBoundary(neg_offset) - neg_offset < size) {
-                neg_offset = nextBoundary(neg_offset);
-            }
-            neg_offset += size;
-            sym[i]->_offset = "-" + to_string(neg_offset) + "(%rbp)";
-            cout << "\tmovq\t" << arg_reg[i] << ", " << sym[i]->_offset << endl;
-        }
-        else if(i >= 6) {
-            // One of the parameters after the sixth
-            if(i < _id->type().parameters()->size()) {
-                if(nextBoundary(pos_offset) - pos_offset < size) {
-                    pos_offset = nextBoundary(pos_offset);
-                }
-                pos_offset += size;
-                sym[i]->_offset = to_string(pos_offset) + "(%rbp)";
-            }
-            // Local variables
-            else {
-                if(nextBoundary(neg_offset) - neg_offset < size) {
-                    neg_offset = nextBoundary(neg_offset);
-                }
-                neg_offset += size;
-                sym[i]->_offset = "-" + to_string(neg_offset) + "(%rbp)";
-            }
-        }
+static ostream &operator <<(ostream &ostr, Expression *expr)
+{
+    if (expr->_register != nullptr)
+	return ostr << expr->_register;
+
+    return ostr << expr->_operand;
+}
+
+
+/*
+ * Function:	Number::generate
+ *
+ * Description:	Generate code for a number.  Since there is really no code
+ *		to generate, we simply update our operand.
+ */
+
+void Number::generate()
+{
+    stringstream ss;
+
+
+    ss << "$" << _value;
+    _operand = ss.str();
+}
+
+
+/*
+ * Function:	Identifier::generate
+ *
+ * Description:	Generate code for an identifier.  Since there is really no
+ *		code to generate, we simply update our operand.
+ */
+
+void Identifier::generate()
+{
+    stringstream ss;
+
+
+    if (_symbol->_offset == 0)
+	ss << global_prefix << _symbol->name() << global_suffix;
+    else
+	ss << _symbol->_offset << "(%rbp)";
+
+    _operand = ss.str();
+}
+
+
+/*
+ * Function:	Call::generate
+ *
+ * Description:	Generate code for a function call.  Arguments are first
+ *		evaluated in case any them are in fact other function
+ *		calls.  The first six arguments are placed in registers and
+ *		any remaining arguments are pushed on the stack from right
+ *		to left.  Each argument on the stack always requires eight
+ *		bytes, so the stack will always be aligned on a multiple of
+ *		eight bytes.  To ensure 16-byte alignment, we adjust the
+ *		stack pointer if necessary.
+ *
+ *		NOT FINISHED: Ignores any return value.
+ */
+
+void Call::generate()
+{
+    unsigned size, bytesPushed = 0;
+
+
+    /* Generate code for all the arguments first. */
+
+    for (unsigned i = 0; i < _args.size(); i ++)
+	_args[i]->generate();
+
+
+    /* Adjust the stack if necessary. */
+
+    if (_args.size() > NUM_ARGS_IN_REGS) {
+	bytesPushed = align((_args.size() - NUM_ARGS_IN_REGS) * SIZEOF_ARG);
+
+	if (bytesPushed > 0)
+	    cout << "\tsubq\t$" << bytesPushed << ", %rsp" << endl;
     }
-    neg_offset = nextBoundary(neg_offset);
-    cout << "\t.set\t" << _id->name() << ".size, " << neg_offset << endl << endl;
 
-    // Call the body generator
+
+    /* Move the arguments into the correct registers or memory locations. */
+
+    for (int i = _args.size() - 1; i >= 0; i --) {
+	size = _args[i]->type().size();
+
+	if (i < NUM_ARGS_IN_REGS) {
+	    cout << "\tmov" << suffix(size) << _args[i] << ", ";
+	    cout << parameters[i]->name(size) << endl;
+	} else {
+	    bytesPushed += SIZEOF_ARG;
+
+	    if (isRegister(_args[i]))
+		cout << "\tpushq\t" << _args[i]->_register->name() << endl;
+	    else if (isNumber(_args[i]) || size == SIZEOF_ARG)
+		cout << "\tpushq\t" << _args[i] << endl;
+	    else {
+		cout << "\tmov" << suffix(size) << _args[i] << ", ";
+		cout << rax->name(size) << endl;
+		cout << "\tpushq\t%rax" << endl;
+	    }
+	}
+    }
+
+
+    /* Call the function.  Technically, we only need to assign the number
+       of floating point arguments to %eax if the function being called
+       takes a variable number of arguments.  But, it never hurts. */
+
+    if (_id->type().parameters() == nullptr)
+	cout << "\tmovl\t$0, %eax" << endl;
+
+    cout << "\tcall\t" << global_prefix << _id->name() << endl;
+
+
+    /* Reclaim the space of any arguments pushed on the stack. */
+
+    if (bytesPushed > 0)
+	cout << "\taddq\t$" << bytesPushed << ", %rsp" << endl;
+}
+
+
+/*
+ * Function:	Assignment::generate
+ *
+ * Description:	Generate code for an assignment statement.
+ *
+ *		NOT FINISHED: Only works if the right-hand side is an
+ *		integer literal and the left-hand size is an integer
+ *		scalar.
+ */
+
+void Assignment::generate()
+{
+    _left->generate();
+    _right->generate();
+    cout << "\tmovl\t" << _right << ", " << _left << endl;
+}
+
+
+/*
+ * Function:	Block::generate
+ *
+ * Description:	Generate code for this block, which simply means we
+ *		generate code for each statement within the block.
+ */
+
+void Block::generate()
+{
+    for (unsigned i = 0; i < _stmts.size(); i ++)
+	_stmts[i]->generate();
+}
+
+
+/*
+ * Function:	Function::generate
+ *
+ * Description:	Generate code for this function, which entails allocating
+ *		space for local variables, then emitting our prologue, the
+ *		body of the function, and the epilogue.
+ */
+
+void Function::generate()
+{
+    int offset = 0;
+    unsigned numSpilled = _id->type().parameters()->size();
+    const Symbols &symbols = _body->declarations()->symbols();
+
+
+    /* Assign offsets to all symbols within the scope of the function. */
+
+    allocate(offset);
+
+
+    /* Generate the prologue, body, and epilogue. */
+
+    cout << global_prefix << _id->name() << ":" << endl;
+    cout << "\tpushq\t%rbp" << endl;
+    cout << "\tmovq\t%rsp, %rbp" << endl;
+
+    if (SIMPLE_PROLOGUE) {
+	offset -= align(offset);
+	cout << "\tsubq\t$" << -offset << ", %rsp" << endl;
+    } else {
+	cout << "\tmovl\t$" << _id->name() << ".size, %eax" << endl;
+	cout << "\tsubq\t%rax, %rsp" << endl;
+    }
+
+    if (numSpilled > NUM_ARGS_IN_REGS)
+	numSpilled = NUM_ARGS_IN_REGS;
+
+    for (unsigned i = 0; i < numSpilled; i ++) {
+	unsigned size = symbols[i]->type().size();
+	cout << "\tmov" << suffix(size) << parameters[i]->name(size);
+	cout << ", " << symbols[i]->_offset << "(%rbp)" << endl;
+    }
+
     _body->generate();
 
-    // Generate the epilogue
-    cout <<
-        "\n\t# " << _id->name() << "() epilogue" << endl <<
-        "\tmovq\t%rbp, %rsp\n"
-        "\tpopq\t%rbp\n"
-        "\tret\n"
-        "\t.globl\t" << _id->name()
-    << endl << endl;
+    cout << "\tmovq\t%rbp, %rsp" << endl;
+    cout << "\tpopq\t%rbp" << endl;
+    cout << "\tret" << endl << endl;
+
+
+    /* Finish aligning the stack. */
+
+    if (!SIMPLE_PROLOGUE) {
+	offset -= align(offset);
+	cout << "\t.set\t" << _id->name() << ".size, " << -offset << endl;
+    }
+
+    cout << "\t.globl\t" << global_prefix << _id->name() << endl << endl;
 }
 
-void Block::generate() {
-    for(auto &s: _stmts) {
-        s->generate();
-    }
-}
 
-void Number::generate() {
-    _operand = "$" + _value;
-}
+/*
+ * Function:	generateGlobals
+ *
+ * Description:	Generate code for any global variable declarations.
+ */
 
-void Identifier::generate() {
-    if(_symbol->_offset == "$0") _operand = _symbol->name() + "(%rip)";
-    else _operand = _symbol->_offset;
-}
+void generateGlobals(Scope *scope)
+{
+    const Symbols &symbols = scope->symbols();
 
-void Call::generate() {
-
-    for(auto &arg: _args) {
-        arg->generate();
-    }
-    for(unsigned i = 0; i < 6 && i < _args.size(); i++) {
-        cout << "\tmovq\t" << _args[i]->_operand << ", " << arg_reg[i] << endl;
-    }
-    for(int i = _args.size() - 1; i >= 6; i--) {
-        cout << "\tpushq\t" << _args[i]->_operand << endl;
-    }
-    cout << "\tcall\t" << _id->name() << endl;
-    if(_args.size() > 6) cout << "\taddq\t$" << (_args.size() - 6) * 16 << ", %rsp" << endl;
-}
-
-void Assignment::generate() {
-    //TODO: phase 6 - generate actual expressions
-    ((Identifier*)_left)->generate();
-    ((Number*)_right)->generate();
-    string mov = "mov";
-    switch(_left->type().size()) {
-        case 1: mov += "b"; break;
-        case 4: mov += "l"; break;
-        case 8: mov += "q"; break;
-    }
-    cout << "\t" << mov << "\t" << _right->_operand << ", " << _left->_operand << endl;
+    for (unsigned i = 0; i < symbols.size(); i ++)
+	if (!symbols[i]->type().isFunction()) {
+	    cout << "\t.comm\t" << global_prefix << symbols[i]->name() << ", ";
+	    cout << symbols[i]->type().size() << endl;
+	}
 }

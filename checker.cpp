@@ -44,8 +44,9 @@ static string invalid_arguments = "invalid arguments to called function";
  * Function:	debug
  */
 
-static void debug(const string &str, const Type &t1, const Type &t2) {
-    cout << "line " << lineno << ": " << str << " " << t1 << " to " << t2 << endl;
+static void debug(const string &str, const Type &t1, const Type &t2)
+{
+    // cerr << "line " << lineno << ": " << str << " " << t1 << " to " << t2 << endl;
 }
 
 
@@ -58,7 +59,8 @@ static void debug(const string &str, const Type &t1, const Type &t2) {
  *		explicitly inserting a type cast.
  */
 
-static Type promote(Expression *&expr) {
+static Type promote(Expression *&expr)
+{
     if (expr->type().isArray()) {
 	debug("promoting", expr->type(), expr->type().promote());
 	expr = new Address(expr, expr->type().promote());
@@ -79,7 +81,8 @@ static Type promote(Expression *&expr) {
  *		as if by assignment.
  */
 
-static Type convert(Expression *&expr, Type type) {
+static Type convert(Expression *&expr, Type type)
+{
     if (expr->type().isArray() && type.isPointer())
 	promote(expr);
 
@@ -100,7 +103,8 @@ static Type convert(Expression *&expr, Type type) {
  *		extended, not truncated.
  */
 
-static Type extend(Expression *&expr, Type type) {
+static Type extend(Expression *&expr, Type type)
+{
     if (expr->type() != type && expr->type().isNumeric() && type.isNumeric())
 	if (expr->type() == character || type == longInt) {
 	    debug("extending", expr->type(), type);
@@ -117,7 +121,8 @@ static Type extend(Expression *&expr, Type type) {
  * Description:	Create a scope and make it the new top-level scope.
  */
 
-Scope *openScope() {
+Scope *openScope()
+{
     toplevel = new Scope(toplevel);
 
     if (outermost == nullptr)
@@ -134,7 +139,8 @@ Scope *openScope() {
  *		the new top-level scope.
  */
 
-Scope *closeScope() {
+Scope *closeScope()
+{
     Scope *old = toplevel;
 
     toplevel = toplevel->enclosing();
@@ -151,7 +157,8 @@ Scope *closeScope() {
  *		declaration.
  */
 
-Symbol *defineFunction(const string &name, const Type &type) {
+Symbol *defineFunction(const string &name, const Type &type)
+{
     Symbol *symbol = outermost->find(name);
 
     if (symbol != nullptr) {
@@ -181,7 +188,8 @@ Symbol *defineFunction(const string &name, const Type &type) {
  *		redeclaration is discarded.
  */
 
-Symbol *declareFunction(const string &name, const Type &type) {
+Symbol *declareFunction(const string &name, const Type &type)
+{
     Symbol *symbol = outermost->find(name);
 
     if (symbol == nullptr) {
@@ -204,7 +212,8 @@ Symbol *declareFunction(const string &name, const Type &type) {
  *		redeclaration is discarded.
  */
 
-Symbol *declareVariable(const string &name, const Type &type) {
+Symbol *declareVariable(const string &name, const Type &type)
+{
     Symbol *symbol = toplevel->find(name);
 
     if (symbol == nullptr) {
@@ -229,7 +238,8 @@ Symbol *declareVariable(const string &name, const Type &type) {
  *		future error messages.
  */
 
-Symbol *checkIdentifier(const string &name) {
+Symbol *checkIdentifier(const string &name)
+{
     Symbol *symbol = toplevel->lookup(name);
 
     if (symbol == nullptr) {
@@ -250,7 +260,8 @@ Symbol *checkIdentifier(const string &name) {
  *		types of arguments must agree.
  */
 
-Expression *checkCall(Symbol *id, Expressions &args) {
+Expression *checkCall(Symbol *id, Expressions &args)
+{
     const Type &t = id->type();
     Type result = error;
 
@@ -295,7 +306,8 @@ Expression *checkCall(Symbol *id, Expressions &args) {
  *		numeric type, and the result has type T.
  */
 
-Expression *checkArray(Expression *left, Expression *right) {
+Expression *checkArray(Expression *left, Expression *right)
+{
     const Type &t1 = promote(left);
     const Type &t2 = extend(right, longInt);
     Type result = error;
@@ -321,7 +333,8 @@ Expression *checkArray(Expression *left, Expression *right) {
  *		logical type, and the result has type int.
  */
 
-Expression *checkNot(Expression *expr) {
+Expression *checkNot(Expression *expr)
+{
     const Type &t = promote(expr);
     Type result = error;
 
@@ -344,7 +357,8 @@ Expression *checkNot(Expression *expr) {
  *		have a numeric type, and the result has that type.
  */
 
-Expression *checkNegate(Expression *expr) {
+Expression *checkNegate(Expression *expr)
+{
     const Type &t = promote(expr);
     Type result = error;
 
@@ -367,7 +381,8 @@ Expression *checkNegate(Expression *expr) {
  *		"pointer to T," and the result has type T.
  */
 
-Expression *checkDereference(Expression *expr) {
+Expression *checkDereference(Expression *expr)
+{
     const Type &t = promote(expr);
     Type result = error;
 
@@ -391,7 +406,8 @@ Expression *checkDereference(Expression *expr) {
  *		"pointer to (T)."
  */
 
-Expression *checkAddress(Expression *expr) {
+Expression *checkAddress(Expression *expr)
+{
     const Type &t = expr->type();
     Type result = error;
 
@@ -414,7 +430,8 @@ Expression *checkAddress(Expression *expr) {
  *		be a function type.
  */
 
-Expression *checkSizeof(Expression *expr) {
+Expression *checkSizeof(Expression *expr)
+{
     const Type &t = expr->type();
 
 
@@ -434,7 +451,8 @@ Expression *checkSizeof(Expression *expr) {
  *		has type long and the other has a pointer type.
  */
 
-Expression *checkCast(const Type &type, Expression *expr) {
+Expression *checkCast(const Type &type, Expression *expr)
+{
     Type t = expr->type();
     Type result;
 
@@ -476,7 +494,8 @@ Expression *checkCast(const Type &type, Expression *expr) {
  *		operand has type long and has type int otherwise.
  */
 
-static Type checkMult(Expression *&left, Expression *&right, const string &op) {
+static Type checkMult(Expression *&left, Expression *&right, const string &op)
+{
     const Type &t1 = extend(left, right->type());
     const Type &t2 = extend(right, left->type());
     Type result = error;
@@ -499,7 +518,8 @@ static Type checkMult(Expression *&left, Expression *&right, const string &op) {
  * Description:	Check a multiplication expression.
  */
 
-Expression *checkMultiply(Expression *left, Expression *right) {
+Expression *checkMultiply(Expression *left, Expression *right)
+{
     Type t = checkMult(left, right, "*");
     return new Multiply(left, right, t);
 }
@@ -511,7 +531,8 @@ Expression *checkMultiply(Expression *left, Expression *right) {
  * Description:	Check a division expression.
  */
 
-Expression *checkDivide(Expression *left, Expression *right) {
+Expression *checkDivide(Expression *left, Expression *right)
+{
     Type t = checkMult(left, right, "/");
     return new Divide(left, right, t);
 }
@@ -522,7 +543,8 @@ Expression *checkDivide(Expression *left, Expression *right) {
  * Description:	Check a remainder expression.
  */
 
-Expression *checkRemainder(Expression *left, Expression *right) {
+Expression *checkRemainder(Expression *left, Expression *right)
+{
     Type t = checkMult(left, right, "%");
     return new Remainder(left, right, t);
 }
@@ -538,7 +560,8 @@ Expression *checkRemainder(Expression *left, Expression *right) {
  *		result has that pointer type.
  */
 
-Expression *checkAdd(Expression *left, Expression *right) {
+Expression *checkAdd(Expression *left, Expression *right)
+{
     Type t1 = left->type();
     Type t2 = right->type();
     Type result = error;
@@ -582,7 +605,8 @@ Expression *checkAdd(Expression *left, Expression *right) {
  *		type long.
  */
 
-Expression *checkSubtract(Expression *left, Expression *right) {
+Expression *checkSubtract(Expression *left, Expression *right)
+{
     Expression *tree;
     Type t1 = left->type();
     Type t2 = right->type();
@@ -628,7 +652,8 @@ Expression *checkSubtract(Expression *left, Expression *right) {
  */
 
 static
-Type checkCompare(Expression *&left, Expression *&right, const string &op) {
+Type checkCompare(Expression *&left, Expression *&right, const string &op)
+{
     const Type &t1 = extend(left, right->type());
     const Type &t2 = extend(right, left->type());
     Type result = error;
@@ -651,7 +676,8 @@ Type checkCompare(Expression *&left, Expression *&right, const string &op) {
  * Description:	Check an equality expression: left == right.
  */
 
-Expression *checkEqual(Expression *left, Expression *right) {
+Expression *checkEqual(Expression *left, Expression *right)
+{
     Type t = checkCompare(left, right, "==");
     return new Equal(left, right, t);
 }
@@ -663,7 +689,8 @@ Expression *checkEqual(Expression *left, Expression *right) {
  * Description:	Check an inequality expression: left != right.
  */
 
-Expression *checkNotEqual(Expression *left, Expression *right) {
+Expression *checkNotEqual(Expression *left, Expression *right)
+{
     Type t = checkCompare(left, right, "!=");
     return new NotEqual(left, right, t);
 }
@@ -675,7 +702,8 @@ Expression *checkNotEqual(Expression *left, Expression *right) {
  * Description:	Check a less-than expression: left < right.
  */
 
-Expression *checkLessThan(Expression *left, Expression *right) {
+Expression *checkLessThan(Expression *left, Expression *right)
+{
     Type t = checkCompare(left, right, "<");
     return new LessThan(left, right, t);
 }
@@ -687,7 +715,8 @@ Expression *checkLessThan(Expression *left, Expression *right) {
  * Description:	Check a greater-than expression: left > right.
  */
 
-Expression *checkGreaterThan(Expression *left, Expression *right) {
+Expression *checkGreaterThan(Expression *left, Expression *right)
+{
     Type t = checkCompare(left, right, ">");
     return new GreaterThan(left, right, t);
 }
@@ -699,7 +728,8 @@ Expression *checkGreaterThan(Expression *left, Expression *right) {
  * Description:	Check a less-than-or-equal expression: left <= right.
  */
 
-Expression *checkLessOrEqual(Expression *left, Expression *right) {
+Expression *checkLessOrEqual(Expression *left, Expression *right)
+{
     Type t = checkCompare(left, right, "<=");
     return new LessOrEqual(left, right, t);
 }
@@ -711,7 +741,8 @@ Expression *checkLessOrEqual(Expression *left, Expression *right) {
  * Description:	Check a greater-than-or-equal expression: left >= right.
  */
 
-Expression *checkGreaterOrEqual(Expression *left, Expression *right) {
+Expression *checkGreaterOrEqual(Expression *left, Expression *right)
+{
     Type t = checkCompare(left, right, ">=");
     return new GreaterOrEqual(left, right, t);
 }
@@ -726,7 +757,8 @@ Expression *checkGreaterOrEqual(Expression *left, Expression *right) {
  */
 
 static
-Type checkLogical(Expression *&left, Expression *&right, const string &op) {
+Type checkLogical(Expression *&left, Expression *&right, const string &op)
+{
     const Type &t1 = promote(left);
     const Type &t2 = promote(right);
     Type result = error;
@@ -749,7 +781,8 @@ Type checkLogical(Expression *&left, Expression *&right, const string &op) {
  * Description:	Check a logical-and expression: left && right.
  */
 
-Expression *checkLogicalAnd(Expression *left, Expression *right) {
+Expression *checkLogicalAnd(Expression *left, Expression *right)
+{
     Type t = checkLogical(left, right, "&&");
     return new LogicalAnd(left, right, t);
 }
@@ -761,7 +794,8 @@ Expression *checkLogicalAnd(Expression *left, Expression *right) {
  * Description:	Check a logical-or expression: left || right.
  */
 
-Expression *checkLogicalOr(Expression *left, Expression *right) {
+Expression *checkLogicalOr(Expression *left, Expression *right)
+{
     Type t = checkLogical(left, right, "||");
     return new LogicalOr(left, right, t);
 }
@@ -774,7 +808,8 @@ Expression *checkLogicalOr(Expression *left, Expression *right) {
  *		lvalue and the type of the operands must be compatible.
  */
 
-Statement *checkAssignment(Expression *left, Expression *right) {
+Statement *checkAssignment(Expression *left, Expression *right)
+{
     const Type &t1 = left->type();
     const Type &t2 = convert(right, left->type());
 
@@ -799,7 +834,8 @@ Statement *checkAssignment(Expression *left, Expression *right) {
  *		return type of the enclosing function.
  */
 
-void checkReturn(Expression *&expr, const Type &type) {
+void checkReturn(Expression *&expr, const Type &type)
+{
     const Type &t = convert(expr, type);
 
     if (t != error && !t.isCompatibleWith(type))
@@ -815,7 +851,8 @@ void checkReturn(Expression *&expr, const Type &type) {
  *		statement: the type must be a logical type.
  */
 
-void checkTest(Expression *&expr) {
+void checkTest(Expression *&expr)
+{
     const Type &t = promote(expr);
 
     if (t != error && !t.isLogical())

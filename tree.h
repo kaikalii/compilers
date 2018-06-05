@@ -1,5 +1,5 @@
 /*
- * File:	tree.h
+ * File:	Tree.h
  *
  * Description:	This file contains the class definitions for abstract
  *		syntax trees in Simple C.
@@ -17,7 +17,7 @@
  *		doesn't necessarily mesh well with a tree designed using
  *		object-orientation.  So, here is my compromise:
  *
- *		tree.h - class definitions
+ *		Tree.h - class definitions
  *		Tree.cpp - constructors and accessors
  *		allocator.cpp - member functions to do storage allocation
  *		generator.cpp - member functions to do code generation
@@ -27,8 +27,8 @@
 # define TREE_H
 # include <string>
 # include <vector>
-# include <iostream>
 # include "scope.h"
+# include "register.h"
 
 typedef std::vector<class Statement *> Statements;
 typedef std::vector<class Expression *> Expressions;
@@ -43,7 +43,8 @@ protected:
 
 public:
     virtual ~Node() {}
-    virtual void generate() {std::cout << "\toops" << std::endl;}
+    virtual void allocate(int &offset) const {}
+    virtual void generate() {}
 };
 
 
@@ -52,7 +53,6 @@ public:
 class Statement : public Node {
 protected:
     Statement() {}
-public:
 };
 
 
@@ -65,7 +65,9 @@ protected:
     Expression(const Type &type);
 
 public:
-    std::string _operand;
+    string _operand;
+    Register *_register;
+
     const Type &type() const;
     bool lvalue() const;
 };
@@ -116,6 +118,7 @@ public:
 
 class Number : public Expression {
     string _value;
+
 public:
     Number(const string &value);
     Number(unsigned long value);
@@ -129,6 +132,7 @@ public:
 class Call : public Expression {
     const Symbol *_id;
     Expressions _args;
+
 public:
     Call(const Symbol *id, const Expressions &args, const Type &type);
     virtual void generate();
@@ -309,6 +313,7 @@ class Block : public Statement {
 public:
     Block(Scope *decls, const Statements &stmts);
     Scope *declarations() const;
+    virtual void allocate(int &offset) const;
     virtual void generate();
 };
 
@@ -321,6 +326,7 @@ class While : public Statement {
 
 public:
     While(Expression *expr, Statement *stmt);
+    virtual void allocate(int &offset) const;
 };
 
 
@@ -332,6 +338,7 @@ class If : public Statement {
 
 public:
     If(Expression *expr, Statement *thenStmt, Statement *elseStmt);
+    virtual void allocate(int &offset) const;
 };
 
 
@@ -343,6 +350,7 @@ class Function : public Node {
 
 public:
     Function(const Symbol *id, Block *body);
+    virtual void allocate(int &offset) const;
     virtual void generate();
 };
 

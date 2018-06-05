@@ -35,7 +35,8 @@ using namespace std;
  */
 
 Expression::Expression(const Type &type)
-    : _type(type), _lvalue(false) {
+    : _type(type), _lvalue(false), _register(nullptr)
+{
 }
 
 
@@ -71,7 +72,8 @@ bool Expression::lvalue() const
  */
 
 Binary::Binary(Expression *left, Expression *right, const Type &type)
-    : Expression(type), _left(left), _right(right) {
+    : Expression(type), _left(left), _right(right)
+{
 }
 
 
@@ -83,7 +85,8 @@ Binary::Binary(Expression *left, Expression *right, const Type &type)
  */
 
 Unary::Unary(Expression *expr, const Type &type)
-    : Expression(type), _expr(expr) {
+    : Expression(type), _expr(expr)
+{
 }
 
 
@@ -96,7 +99,8 @@ Unary::Unary(Expression *expr, const Type &type)
  */
 
 String::String(const string &value)
-    : Expression(Type(CHAR, 0, value.size() - 1)), _value(value) {
+    : Expression(Type(CHAR, 0, value.size() - 1)), _value(value)
+{
 }
 
 
@@ -120,7 +124,8 @@ const string &String::value() const
  */
 
 Identifier::Identifier(const Symbol *symbol)
-    : Expression(symbol->type()), _symbol(symbol) {
+    : Expression(symbol->type()), _symbol(symbol)
+{
     _lvalue = symbol->type().isScalar();
 }
 
@@ -144,7 +149,8 @@ const Symbol *Identifier::symbol() const
  */
 
 Number::Number(const string &value)
-    : Expression(Type(INT)), _value(value) {
+    : Expression(Type(INT)), _value(value)
+{
     unsigned long val;
     char *ptr;
 
@@ -166,7 +172,8 @@ Number::Number(const string &value)
  */
 
 Number::Number(unsigned long value)
-    : Expression(Type(LONG)) {
+    : Expression(Type(LONG))
+{
     stringstream ss;
 
     ss << value;
@@ -193,7 +200,8 @@ const string &Number::value() const
  */
 
 Call::Call(const Symbol *id, const Expressions &args, const Type &type)
-    : Expression(type), _id(id), _args(args) {
+    : Expression(type), _id(id), _args(args)
+{
 }
 
 
@@ -204,7 +212,8 @@ Call::Call(const Symbol *id, const Expressions &args, const Type &type)
  */
 
 Not::Not(Expression *expr, const Type &type)
-    : Unary(expr, type) {
+    : Unary(expr, type)
+{
 }
 
 
@@ -215,7 +224,8 @@ Not::Not(Expression *expr, const Type &type)
  */
 
 Negate::Negate(Expression *expr, const Type &type)
-    : Unary(expr, type) {
+    : Unary(expr, type)
+{
 }
 
 
@@ -226,7 +236,8 @@ Negate::Negate(Expression *expr, const Type &type)
  */
 
 Dereference::Dereference(Expression *expr, const Type &type)
-    : Unary(expr, type) {
+    : Unary(expr, type)
+{
     _lvalue = true;
 }
 
@@ -238,7 +249,8 @@ Dereference::Dereference(Expression *expr, const Type &type)
  */
 
 Address::Address(Expression *expr, const Type &type)
-    : Unary(expr, type) {
+    : Unary(expr, type)
+{
 }
 
 
@@ -249,7 +261,8 @@ Address::Address(Expression *expr, const Type &type)
  */
 
 Cast::Cast(const Type &type, Expression *expr)
-    : Unary(expr, type) {
+    : Unary(expr, type)
+{
 }
 
 
@@ -260,7 +273,8 @@ Cast::Cast(const Type &type, Expression *expr)
  */
 
 Multiply::Multiply(Expression *left, Expression *right, const Type &type)
-    : Binary(left, right, type) {
+    : Binary(left, right, type)
+{
 }
 
 
@@ -271,7 +285,8 @@ Multiply::Multiply(Expression *left, Expression *right, const Type &type)
  */
 
 Divide::Divide(Expression *left, Expression *right, const Type &type)
-    : Binary(left, right, type) {
+    : Binary(left, right, type)
+{
 }
 
 
@@ -282,7 +297,8 @@ Divide::Divide(Expression *left, Expression *right, const Type &type)
  */
 
 Remainder::Remainder(Expression *left, Expression *right, const Type &type)
-    : Binary(left, right, type) {
+    : Binary(left, right, type)
+{
 }
 
 
@@ -293,7 +309,8 @@ Remainder::Remainder(Expression *left, Expression *right, const Type &type)
  */
 
 Add::Add(Expression *left, Expression *right, const Type &type)
-    : Binary(left, right, type) {
+    : Binary(left, right, type)
+{
 }
 
 
@@ -304,7 +321,8 @@ Add::Add(Expression *left, Expression *right, const Type &type)
  */
 
 Subtract::Subtract(Expression *left, Expression *right, const Type &type)
-    : Binary(left, right, type) {
+    : Binary(left, right, type)
+{
 }
 
 
@@ -315,7 +333,8 @@ Subtract::Subtract(Expression *left, Expression *right, const Type &type)
  */
 
 LessThan::LessThan(Expression *left, Expression *right, const Type &type)
-    : Binary(left, right, type) {
+    : Binary(left, right, type)
+{
 }
 
 
@@ -326,7 +345,8 @@ LessThan::LessThan(Expression *left, Expression *right, const Type &type)
  */
 
 GreaterThan::GreaterThan(Expression *left, Expression *right, const Type &type)
-    : Binary(left, right, type) {
+    : Binary(left, right, type)
+{
 }
 
 
@@ -337,7 +357,8 @@ GreaterThan::GreaterThan(Expression *left, Expression *right, const Type &type)
  */
 
 LessOrEqual::LessOrEqual(Expression *left, Expression *right, const Type &type)
-    : Binary(left, right, type) {
+    : Binary(left, right, type)
+{
 }
 
 
@@ -348,7 +369,8 @@ LessOrEqual::LessOrEqual(Expression *left, Expression *right, const Type &type)
  */
 
 GreaterOrEqual::GreaterOrEqual(Expression *left, Expression *right, const Type &type)
-    : Binary(left, right, type) {
+    : Binary(left, right, type)
+{
 }
 
 
@@ -359,7 +381,8 @@ GreaterOrEqual::GreaterOrEqual(Expression *left, Expression *right, const Type &
  */
 
 Equal::Equal(Expression *left, Expression *right, const Type &type)
-    : Binary(left, right, type) {
+    : Binary(left, right, type)
+{
 }
 
 
@@ -370,7 +393,8 @@ Equal::Equal(Expression *left, Expression *right, const Type &type)
  */
 
 NotEqual::NotEqual(Expression *left, Expression *right, const Type &type)
-    : Binary(left, right, type) {
+    : Binary(left, right, type)
+{
 }
 
 
@@ -381,7 +405,8 @@ NotEqual::NotEqual(Expression *left, Expression *right, const Type &type)
  */
 
 LogicalAnd::LogicalAnd(Expression *left, Expression *right, const Type &type)
-    : Binary(left, right, type) {
+    : Binary(left, right, type)
+{
 }
 
 
@@ -392,7 +417,8 @@ LogicalAnd::LogicalAnd(Expression *left, Expression *right, const Type &type)
  */
 
 LogicalOr::LogicalOr(Expression *left, Expression *right, const Type &type)
-    : Binary(left, right, type) {
+    : Binary(left, right, type)
+{
 }
 
 
@@ -403,7 +429,8 @@ LogicalOr::LogicalOr(Expression *left, Expression *right, const Type &type)
  */
 
 Assignment::Assignment(Expression *left, Expression *right)
-    : _left(left), _right(right) {
+    : _left(left), _right(right)
+{
 }
 
 
@@ -414,7 +441,8 @@ Assignment::Assignment(Expression *left, Expression *right)
  */
 
 Return::Return(Expression *expr)
-    : _expr(expr) {
+    : _expr(expr)
+{
 }
 
 
@@ -425,7 +453,8 @@ Return::Return(Expression *expr)
  */
 
 Block::Block(Scope *decls, const Statements &stmts)
-    : _decls(decls), _stmts(stmts) {
+    : _decls(decls), _stmts(stmts)
+{
 }
 
 
@@ -448,7 +477,8 @@ Scope *Block::declarations() const
  */
 
 While::While(Expression *expr, Statement *stmt)
-    : _expr(expr), _stmt(stmt) {
+    : _expr(expr), _stmt(stmt)
+{
 }
 
 
@@ -459,7 +489,8 @@ While::While(Expression *expr, Statement *stmt)
  */
 
 If::If(Expression *expr, Statement *thenStmt, Statement *elseStmt)
-    : _expr(expr), _thenStmt(thenStmt), _elseStmt(elseStmt) {
+    : _expr(expr), _thenStmt(thenStmt), _elseStmt(elseStmt)
+{
 }
 
 
@@ -470,5 +501,6 @@ If::If(Expression *expr, Statement *thenStmt, Statement *elseStmt)
  */
 
 Function::Function(const Symbol *id, Block *body)
-    : _id(id), _body(body) {
+    : _id(id), _body(body)
+{
 }

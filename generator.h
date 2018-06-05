@@ -1,8 +1,15 @@
-#ifndef GENERATOR_H
-#define GENERATOR_H
+/*
+ * File:	generator.h
+ *
+ * Description:	This file contains the function declarations for the code
+ *		generator for Simple C.  Most of the function declarations
+ *		are actually member functions provided as part of tree.h.
+ */
 
-#include "scope.h"
+# ifndef GENERATOR_H
+# define GENERATOR_H
+# include "scope.h"
 
-void declareGlobals(Scope *scope);
+void generateGlobals(Scope *scope);
 
-#endif
+# endif /* GENERATOR_H */
