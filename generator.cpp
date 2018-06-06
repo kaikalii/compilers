@@ -72,7 +72,7 @@ static Register *r12 = new Register("%r12", "%r12d", "%r12b");
 static Register *r13 = new Register("%r13", "%r13d", "%r13b");
 static Register *r14 = new Register("%r14", "%r14d", "%r14b");
 static Register *r15 = new Register("%r15", "%r15d", "%r15b");
-static vector<Register *> registers = {rdi, rsi, rdx, rcx, r8, r9, rbx, r10, r11, r12, r13, r14, r15};
+static vector<Register *> registers = {r15, r14, r13, r12, r11, r10, rbx, r9, r8, rcx, rdx, rsi, rdi, rax};
 
 /*
 * Function:	operator << (private)
@@ -396,7 +396,7 @@ void Function::generate()
     offset = tempoffset;
 
     // Epilogue
-    cout << "\n" << return_label << ":" << endl;
+    cout << "\n\t" << return_label << ":" << endl;
     cout << "\tmovq\t%rbp, %rsp" << endl;
     cout << "\tpopq\t%rbp" << endl;
     cout << "\tret" << endl << endl;
@@ -683,9 +683,9 @@ void LogicalOr::generate() {
     cout << "\tjne\t" << l1 << endl;
     cout << "\tmov" << suffix(_left->type().size()) << "$0, " << _left << endl;
     cout << "\tjmp\t" << l2 << endl;
-    cout << l1 << ":" << endl;
+    cout << "\t" << l1 << ":" << endl;
     cout << "\tmov" << suffix(_left->type().size()) << "$1, " << _left << endl;
-    cout << l2 << ":" << endl;
+    cout << "\t" << l2 << ":" << endl;
 
     cout << "\t# end logical or" << endl;
 
@@ -709,9 +709,9 @@ void LogicalAnd::generate() {
     cout << "\tje\t" << l1 << endl;
     cout << "\tmov" << suffix(_left->type().size()) << "$1, " << _left << endl;
     cout << "\tjmp\t" << l2 << endl;
-    cout << l1 << ":" << endl;
+    cout << "\t" << l1 << ":" << endl;
     cout << "\tmov" << suffix(_left->type().size()) << "$0, " << _left << endl;
-    cout << l2 << ":" << endl;
+    cout << "\t" << l2 << ":" << endl;
 
     cout << "\t# end logical and" << endl;
 
@@ -723,13 +723,13 @@ void While::generate() {
     Label loop(".loop"), _exit(".exit");
 
     cout << "\t# begin while" << endl;
-    cout << loop << ":" << endl;
+    cout << "\t" << loop << ":" << endl;
     _expr->generate();
     cout << "\tcmp" << suffix(_expr->type().size()) << "$0, " << _expr << endl;
     cout << "\tje\t\t" << _exit << endl;
     _stmt->generate();
     cout << "\tjmp\t" << loop << endl;
-    cout << _exit << ":" << endl;
+    cout << "\t" << _exit << ":" << endl;
     cout << "\t# end while" << endl;
 }
 
@@ -743,10 +743,10 @@ void If::generate() {
     _thenStmt->generate();
     if(_elseStmt)
         cout << "\tjmp\t" << _exit << endl;
-    cout << skip << ":" << endl;
+    cout << "\t" << skip << ":" << endl;
     if(_elseStmt) {
         _elseStmt->generate();
-        cout << _exit << ":" << endl;
+        cout << "\t" << _exit << ":" << endl;
     }
     cout << "\t# end if" << endl;
 }

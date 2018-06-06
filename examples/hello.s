@@ -4,13 +4,13 @@ main:
 	subq	$0, %rsp
 
 	# address
-	leaq	string2, %rdi
-	movq	%rdi, -8(%rbp)
+	leaq	string2, %r15
+	movq	%r15, -8(%rbp)
 	movq	-8(%rbp), %rdi
 	movl	$0, %eax
 	call	printf
 
-.function_1:
+	.function_1:
 	movq	%rbp, %rsp
 	popq	%rbp
 	ret

@@ -30,6 +30,18 @@ gcc examples/mixed.s -o examples/mixed
 examples/mixed > examples/mixed.txt
 diff examples/mixed.txt examples/mixed.out
 
+echo ====fib.c====
+./scc < examples/fib.c > examples/fib.s
+gcc examples/fib.s -o examples/fib
+examples/fib > examples/fib.txt
+diff examples/fib.txt examples/fib.out
+
+echo ====calc.c====
+./scc < examples/calc.c > examples/calc.s
+gcc examples/calc.s -o examples/calc
+examples/calc > examples/calc.txt
+diff examples/calc.txt examples/calc.out
+
 echo ====qsort.c====
 ./scc < examples/qsort.c > examples/qsort.s
 gcc examples/qsort.s -o examples/qsort
@@ -41,9 +53,3 @@ echo ====tree.c====
 gcc examples/tree.s -o examples/tree
 examples/tree > examples/tree.txt
 diff examples/tree.txt examples/tree.out
-
-echo ====fib.c====
-./scc < examples/fib.c > examples/fib.s
-gcc examples/fib.s -o examples/fib
-examples/fib > examples/fib.txt
-diff examples/fib.txt examples/fib.out

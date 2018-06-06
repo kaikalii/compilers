@@ -5,46 +5,47 @@ lexan:
 
 	# begin if
 	# equal
-	movl	c, %edi
-	cmpl	$0, %edi
-	sete	%dil
-	movzbl	%dil, %edi
-	cmpl	$0, %edi
+	movl	c, %r15d
+	cmpl	$0, %r15d
+	sete	%r15b
+	movzbl	%r15b, %r15d
+	cmpl	$0, %r15d
 	je		.skip2
+	movl	%r15d, -20(%rbp)
 	movl	$0, %eax
 	call	getchar
 	movl	%eax, c
-.skip2:
+	.skip2:
 	# end if
 	# begin while
-.loop4:
+	.loop4:
 	# begin logical and
 	movl	c, %edi
 	movl	$0, %eax
 	call	isspace
-	movl	%eax, %edi
-	cmpl	$0, %edi
+	cmpl	$0, %eax
 	je	.L6
 	# not equal
-	movl	c, %esi
-	cmpl	NL, %esi
-	setne	%sil
-	movzbl	%sil, %esi
-	cmpl	$0, %esi
+	movl	c, %r15d
+	cmpl	NL, %r15d
+	setne	%r15b
+	movzbl	%r15b, %r15d
+	cmpl	$0, %r15d
 	je	.L6
-	movl	$1, %edi
+	movl	$1, %eax
 	jmp	.L7
-.L6:
-	movl	$0, %edi
-.L7:
+	.L6:
+	movl	$0, %eax
+	.L7:
 	# end logical and
-	cmpl	$0, %edi
+	cmpl	$0, %eax
 	je		.exit5
+	movl	%eax, -24(%rbp)
 	movl	$0, %eax
 	call	getchar
 	movl	%eax, c
 	jmp	.loop4
-.exit5:
+	.exit5:
 	# end while
 	# begin if
 	movl	c, %edi
@@ -56,46 +57,46 @@ lexan:
 	movzbl	%al, %eax
 	cmpl	$0, %eax
 	je		.skip8
-	movl	c, %edi
-	movl	%edi, -8(%rbp)
-	movl	$0, %edi
-	movl	%edi, c
-	movl	%eax, -20(%rbp)
+	movl	c, %r15d
+	movl	%r15d, -8(%rbp)
+	movl	$0, %r15d
+	movl	%r15d, c
+	# return
 	movl	-8(%rbp), %eax
 	jmp	.function_1
-.skip8:
+	.skip8:
 	# end if
-	movl	$0, %edi
-	movl	%edi, -4(%rbp)
+	movl	$0, %r15d
+	movl	%r15d, -4(%rbp)
 	# begin while
-.loop10:
+	.loop10:
 	movl	c, %edi
 	movl	$0, %eax
 	call	isdigit
 	cmpl	$0, %eax
 	je		.exit11
 	# multiply
-	movl	-4(%rbp), %edi
-	imull	$10, %edi
+	movl	-4(%rbp), %r15d
+	imull	$10, %r15d
 	# add
-	addl	c, %edi
+	addl	c, %r15d
 	# subtract
-	subl	$48, %edi
-	movl	%edi, -4(%rbp)
+	subl	$48, %r15d
+	movl	%r15d, -4(%rbp)
 	movl	c, %edi
 	movl	$0, %eax
 	call	getchar
 	movl	%eax, c
 	jmp	.loop10
-.exit11:
+	.exit11:
 	# end while
-	movl	-4(%rbp), %edi
-	movl	%edi, lexval
-	movl	%eax, -24(%rbp)
+	movl	-4(%rbp), %r15d
+	movl	%r15d, lexval
+	# return
 	movl	NUM, %eax
 	jmp	.function_1
 
-.function_1:
+	.function_1:
 	movq	%rbp, %rsp
 	popq	%rbp
 	ret
@@ -110,27 +111,29 @@ match:
 	movl	%edi, -4(%rbp)
 	# begin if
 	# not equal
-	movl	lookahead, %edi
-	cmpl	-4(%rbp), %edi
-	setne	%dil
-	movzbl	%dil, %edi
-	cmpl	$0, %edi
+	movl	lookahead, %r15d
+	cmpl	-4(%rbp), %r15d
+	setne	%r15b
+	movzbl	%r15b, %r15d
+	cmpl	$0, %r15d
 	je		.skip13
 	# address
-	leaq	string15, %rsi
+	leaq	string15, %r14
+	movl	%r15d, -20(%rbp)
+	movq	%r14, -28(%rbp)
 	movl	lookahead, %esi
-	movq	%rsi, %rdi
+	movq	-28(%rbp), %rdi
 	movl	$0, %eax
 	call	printf
 	movl	$1, %edi
 	movl	$0, %eax
 	call	exit
-.skip13:
+	.skip13:
 	# end if
 	call	lexan
 	movl	%eax, lookahead
 
-.function_12:
+	.function_12:
 	movq	%rbp, %rsp
 	popq	%rbp
 	ret
@@ -144,12 +147,13 @@ factor:
 
 	# begin if
 	# equal
-	movl	lookahead, %edi
-	cmpl	LPAREN, %edi
-	sete	%dil
-	movzbl	%dil, %edi
-	cmpl	$0, %edi
+	movl	lookahead, %r15d
+	cmpl	LPAREN, %r15d
+	sete	%r15b
+	movzbl	%r15b, %r15d
+	cmpl	$0, %r15d
 	je		.skip17
+	movl	%r15d, -20(%rbp)
 	movl	LPAREN, %edi
 	call	match
 	movl	$0, %eax
@@ -157,20 +161,20 @@ factor:
 	movl	%eax, -4(%rbp)
 	movl	RPAREN, %edi
 	call	match
-	movl	%eax, -20(%rbp)
+	# return
 	movl	-4(%rbp), %eax
 	jmp	.function_16
-.skip17:
+	.skip17:
 	# end if
-	movl	lexval, %edi
-	movl	%edi, -4(%rbp)
+	movl	lexval, %r15d
+	movl	%r15d, -4(%rbp)
 	movl	NUM, %edi
 	call	match
-	movl	%eax, -24(%rbp)
+	# return
 	movl	-4(%rbp), %eax
 	jmp	.function_16
 
-.function_16:
+	.function_16:
 	movq	%rbp, %rsp
 	popq	%rbp
 	ret
@@ -185,69 +189,71 @@ term:
 	call	factor
 	movl	%eax, -4(%rbp)
 	# begin while
-.loop20:
+	.loop20:
 	# begin logical or
 	# equal
-	movl	lookahead, %edi
-	cmpl	STAR, %edi
-	sete	%dil
-	movzbl	%dil, %edi
-	movl	%edi, %esi
-	cmpl	$0, %esi
+	movl	lookahead, %r15d
+	cmpl	STAR, %r15d
+	sete	%r15b
+	movzbl	%r15b, %r15d
+	cmpl	$0, %r15d
 	jne	.L22
 	# equal
-	movl	lookahead, %edi
-	cmpl	SLASH, %edi
-	sete	%dil
-	movzbl	%dil, %edi
-	cmpl	$0, %edi
+	movl	lookahead, %r14d
+	cmpl	SLASH, %r14d
+	sete	%r14b
+	movzbl	%r14b, %r14d
+	cmpl	$0, %r14d
 	jne	.L22
-	movl	$0, %esi
+	movl	$0, %r15d
 	jmp	.L23
-.L22:
-	movl	$1, %esi
-.L23:
+	.L22:
+	movl	$1, %r15d
+	.L23:
 	# end logical or
-	cmpl	$0, %esi
+	cmpl	$0, %r15d
 	je		.exit21
 	# begin if
 	# equal
-	movl	lookahead, %edi
-	cmpl	STAR, %edi
-	sete	%dil
-	movzbl	%dil, %edi
-	cmpl	$0, %edi
+	movl	lookahead, %r14d
+	cmpl	STAR, %r14d
+	sete	%r14b
+	movzbl	%r14b, %r14d
+	cmpl	$0, %r14d
 	je		.skip24
+	movl	%r15d, -20(%rbp)
+	movl	%r14d, -24(%rbp)
 	movl	STAR, %edi
 	call	match
 	call	factor
 	# multiply
-	movl	-4(%rbp), %edi
-	imull	%eax, %edi
-	movl	%edi, -4(%rbp)
+	movl	-4(%rbp), %r15d
+	imull	%eax, %r15d
+	movl	%r15d, -4(%rbp)
 	jmp	.exit25
-.skip24:
+	.skip24:
 	movl	SLASH, %edi
 	call	match
 	call	factor
 	# divide
-	movl	-4(%rbp), %edi
-	movl	%eax, %esi
-	movl	%edi, %eax
+	movl	-4(%rbp), %r15d
+	movl	%eax, %r14d
+	movl	%r15d, %eax
 	movl	%eax, %edx
 	sarl	$31, %edx
-	idivl	%esi
-	movl	%eax, %edi
-	movl	%edi, -4(%rbp)
-.exit25:
+	idivl	%r14d
+	movl	%eax, %r15d
+	movl	%r15d, -4(%rbp)
+	.exit25:
 	# end if
 	jmp	.loop20
-.exit21:
+	.exit21:
 	# end while
+	# return
 	movl	-4(%rbp), %eax
 	jmp	.function_19
 
-.function_19:
+	.function_19:
 	movq	%rbp, %rsp
 	popq	%rbp
 	ret
@@ -262,64 +268,66 @@ expr:
 	call	term
 	movl	%eax, -4(%rbp)
 	# begin while
-.loop27:
+	.loop27:
 	# begin logical or
 	# equal
-	movl	lookahead, %edi
-	cmpl	PLUS, %edi
-	sete	%dil
-	movzbl	%dil, %edi
-	movl	%edi, %esi
-	cmpl	$0, %esi
+	movl	lookahead, %r15d
+	cmpl	PLUS, %r15d
+	sete	%r15b
+	movzbl	%r15b, %r15d
+	cmpl	$0, %r15d
 	jne	.L29
 	# equal
-	movl	lookahead, %edi
-	cmpl	MINUS, %edi
-	sete	%dil
-	movzbl	%dil, %edi
-	cmpl	$0, %edi
+	movl	lookahead, %r14d
+	cmpl	MINUS, %r14d
+	sete	%r14b
+	movzbl	%r14b, %r14d
+	cmpl	$0, %r14d
 	jne	.L29
-	movl	$0, %esi
+	movl	$0, %r15d
 	jmp	.L30
-.L29:
-	movl	$1, %esi
-.L30:
+	.L29:
+	movl	$1, %r15d
+	.L30:
 	# end logical or
-	cmpl	$0, %esi
+	cmpl	$0, %r15d
 	je		.exit28
 	# begin if
 	# equal
-	movl	lookahead, %edi
-	cmpl	PLUS, %edi
-	sete	%dil
-	movzbl	%dil, %edi
-	cmpl	$0, %edi
+	movl	lookahead, %r14d
+	cmpl	PLUS, %r14d
+	sete	%r14b
+	movzbl	%r14b, %r14d
+	cmpl	$0, %r14d
 	je		.skip31
+	movl	%r15d, -20(%rbp)
+	movl	%r14d, -24(%rbp)
 	movl	PLUS, %edi
 	call	match
 	call	term
 	# add
-	movl	-4(%rbp), %edi
-	addl	%eax, %edi
-	movl	%edi, -4(%rbp)
+	movl	-4(%rbp), %r15d
+	addl	%eax, %r15d
+	movl	%r15d, -4(%rbp)
 	jmp	.exit32
-.skip31:
+	.skip31:
 	movl	MINUS, %edi
 	call	match
 	call	term
 	# subtract
-	movl	-4(%rbp), %edi
-	subl	%eax, %edi
-	movl	%edi, -4(%rbp)
-.exit32:
+	movl	-4(%rbp), %r15d
+	subl	%eax, %r15d
+	movl	%r15d, -4(%rbp)
+	.exit32:
 	# end if
 	jmp	.loop27
-.exit28:
+	.exit28:
 	# end while
+	# return
 	movl	-4(%rbp), %eax
 	jmp	.function_26
 
-.function_26:
+	.function_26:
 	movq	%rbp, %rsp
 	popq	%rbp
 	ret
@@ -331,112 +339,101 @@ main:
 	movq	%rsp, %rbp
 	subq	$16, %rsp
 
-	movl	$256, %edi
-	movl	%edi, NUM
+	movl	$256, %r15d
+	movl	%r15d, NUM
 	# address
-	leaq	string34, %rdi
+	leaq	string34, %r15
 	# dereference
-	movq	%rdi, %rsi
-	movb	(%rsi), %dil
+	movb	(%r15), %r14b
 	# cast
-	movsbl	%dil, %edi
-	movb	%dil, %cl
-	movl	%ecx, NL
+	movsbl	%r14b, %r14d
+	movl	%r14d, NL
 	# address
-	leaq	string35, %rdi
+	leaq	string35, %r15
 	# dereference
-	movq	%rdi, %rsi
-	movb	(%rsi), %dil
+	movb	(%r15), %r14b
 	# cast
-	movsbl	%dil, %edi
-	movb	%dil, %cl
-	movl	%ecx, LPAREN
+	movsbl	%r14b, %r14d
+	movl	%r14d, LPAREN
 	# address
-	leaq	string36, %rdi
+	leaq	string36, %r15
 	# dereference
-	movq	%rdi, %rsi
-	movb	(%rsi), %dil
+	movb	(%r15), %r14b
 	# cast
-	movsbl	%dil, %edi
-	movb	%dil, %cl
-	movl	%ecx, RPAREN
+	movsbl	%r14b, %r14d
+	movl	%r14d, RPAREN
 	# address
-	leaq	string37, %rdi
+	leaq	string37, %r15
 	# dereference
-	movq	%rdi, %rsi
-	movb	(%rsi), %dil
+	movb	(%r15), %r14b
 	# cast
-	movsbl	%dil, %edi
-	movb	%dil, %cl
-	movl	%ecx, PLUS
+	movsbl	%r14b, %r14d
+	movl	%r14d, PLUS
 	# address
-	leaq	string38, %rdi
+	leaq	string38, %r15
 	# dereference
-	movq	%rdi, %rsi
-	movb	(%rsi), %dil
+	movb	(%r15), %r14b
 	# cast
-	movsbl	%dil, %edi
-	movb	%dil, %cl
-	movl	%ecx, MINUS
+	movsbl	%r14b, %r14d
+	movl	%r14d, MINUS
 	# address
-	leaq	string39, %rdi
+	leaq	string39, %r15
 	# dereference
-	movq	%rdi, %rsi
-	movb	(%rsi), %dil
+	movb	(%r15), %r14b
 	# cast
-	movsbl	%dil, %edi
-	movb	%dil, %cl
-	movl	%ecx, STAR
+	movsbl	%r14b, %r14d
+	movl	%r14d, STAR
 	# address
-	leaq	string40, %rdi
+	leaq	string40, %r15
 	# dereference
-	movq	%rdi, %rsi
-	movb	(%rsi), %dil
+	movb	(%r15), %r14b
 	# cast
-	movsbl	%dil, %edi
-	movb	%dil, %cl
-	movl	%ecx, SLASH
+	movsbl	%r14b, %r14d
+	movl	%r14d, SLASH
 	call	lexan
 	movl	%eax, lookahead
 	# begin while
-.loop41:
+	.loop41:
 	# negate
-	movl	$1, %edi
-	negl	%edi
+	movl	$1, %r15d
+	negl	%r15d
 	# not equal
-	movl	lookahead, %esi
-	cmpl	%edi, %esi
-	setne	%sil
-	movzbl	%sil, %esi
-	cmpl	$0, %esi
+	movl	lookahead, %r14d
+	cmpl	%r15d, %r14d
+	setne	%r14b
+	movzbl	%r14b, %r14d
+	cmpl	$0, %r14d
 	je		.exit42
+	movl	%r14d, -20(%rbp)
 	call	expr
 	movl	%eax, -4(%rbp)
 	# address
-	leaq	string43, %rdi
+	leaq	string43, %r15
+	movq	%r15, -28(%rbp)
 	movl	-4(%rbp), %esi
-	movq	%rdi, %rdi
+	movq	-28(%rbp), %rdi
 	movl	$0, %eax
 	call	printf
 	# begin while
-.loop44:
+	.loop44:
 	# equal
-	movl	lookahead, %edi
-	cmpl	NL, %edi
-	sete	%dil
-	movzbl	%dil, %edi
-	cmpl	$0, %edi
+	movl	lookahead, %r15d
+	cmpl	NL, %r15d
+	sete	%r15b
+	movzbl	%r15b, %r15d
+	cmpl	$0, %r15d
 	je		.exit45
+	movl	%r15d, -32(%rbp)
 	movl	NL, %edi
 	call	match
 	jmp	.loop44
-.exit45:
+	.exit45:
 	# end while
 	jmp	.loop41
-.exit42:
+	.exit42:
 	# end while
 
-.function_33:
+	.function_33:
 	movq	%rbp, %rsp
 	popq	%rbp
 	ret

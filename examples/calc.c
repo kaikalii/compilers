@@ -125,10 +125,10 @@ int main(void)
     lookahead = lexan();
 
     while (lookahead != -1) {
-	n = expr();
-	printf("%d\n", n);
+    	n = expr();
+    	printf("%d\n", n);
 
-	while (lookahead == NL)
-	    match(NL);
+        while (lookahead == NL)
+            match(NL);
     }
 }

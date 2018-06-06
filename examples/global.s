@@ -4,17 +4,17 @@ foo:
 	subq	$0, %rsp
 
 	# add
-	movl	x, %edi
-	addl	$1, %edi
-	movl	%edi, x
+	movl	x, %r15d
+	addl	$1, %r15d
+	movl	%r15d, x
 	# add
-	movl	x, %edi
-	addl	$1, %edi
+	movl	x, %r15d
+	addl	$1, %r15d
 	# return
-	movl	%edi, %eax
+	movl	%r15d, %eax
 	jmp	.function_1
 
-.function_1:
+	.function_1:
 	movq	%rbp, %rsp
 	popq	%rbp
 	ret
@@ -26,13 +26,14 @@ main:
 	movq	%rsp, %rbp
 	subq	$0, %rsp
 
-	movl	$65, %edi
-	movl	%edi, x
+	movl	$65, %r15d
+	movl	%r15d, x
 	movl	x, %edi
 	movl	$0, %eax
 	call	putchar
 	call	foo
-	movl	%eax, %edi
+	movl	%eax, -4(%rbp)
+	movl	-4(%rbp), %edi
 	movl	$0, %eax
 	call	putchar
 	movl	x, %edi
@@ -42,7 +43,7 @@ main:
 	movl	$0, %eax
 	call	putchar
 
-.function_2:
+	.function_2:
 	movq	%rbp, %rsp
 	popq	%rbp
 	ret
