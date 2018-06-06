@@ -10,6 +10,8 @@
 
 # include <sstream>
 # include <iostream>
+# include <vector>
+# include <assert.h>
 # include "generator.h"
 # include "register.h"
 # include "machine.h"
@@ -30,6 +32,29 @@ using namespace std;
 # define isMemory(expr)		(!isNumber(expr) && !isRegister(expr))
 
 
+
+Label::Label(string prefix) {
+    _number = prefix + to_string(_counter++);
+}
+string Label::number() const {
+    return _number;
+}
+unsigned Label::_counter = 0;
+
+ostream &operator<<(ostream &ostr, const Label &label) {
+    return ostr << label.number();
+}
+
+StringLabel::StringLabel(std::string s) :Label("string"), _s(s) {}
+const string& StringLabel::str() const {
+    return _s;
+}
+
+static vector<StringLabel> string_labels;
+static Label return_label;
+
+static int tempoffset;
+
 /* The registers that we are using in the assignment. */
 
 static Register *rax = new Register("%rax", "%eax", "%al");
@@ -39,8 +64,44 @@ static Register *rdx = new Register("%rdx", "%edx", "%dl");
 static Register *rcx = new Register("%rcx", "%ecx", "%cl");
 static Register *r8 = new Register("%r8", "%r8d", "%r8b");
 static Register *r9 = new Register("%r9", "%r9d", "%r9b");
-static Register *parameters[] = {rdi, rsi, rdx, rcx, r8, r9};
+static vector<Register *> parameters = {rdi, rsi, rdx, rcx, r8, r9};
+static Register *rbx = new Register("%rbx", "%ebx", "%bl");
+static Register *r10 = new Register("%r10", "%r10d", "%r10b");
+static Register *r11 = new Register("%r11", "%r11d", "%r11b");
+static Register *r12 = new Register("%r12", "%r12d", "%r12b");
+static Register *r13 = new Register("%r13", "%r13d", "%r13b");
+static Register *r14 = new Register("%r14", "%r14d", "%r14b");
+static Register *r15 = new Register("%r15", "%r15d", "%r15b");
+static vector<Register *> registers = {rdi, rsi, rdx, rcx, r8, r9, rbx, r10, r11, r12, r13, r14, r15};
 
+/*
+* Function:	operator << (private)
+*
+* Description:	Write an expression to the specified stream.  This function
+*		first checks to see if the expression is in a register, and
+*		if not then uses its operand.
+*/
+
+static ostream &operator <<(ostream &ostr, Expression *expr)
+{
+    if (expr->_register != nullptr)
+        return ostr << expr->_register;
+
+    return ostr << expr->_operand;
+}
+
+void assign(Expression *expr, Register *reg) {
+    if (expr != nullptr) {
+        if (expr->_register != nullptr)
+            expr->_register->_node = nullptr;
+        expr->_register = reg;
+    }
+    if (reg != nullptr) {
+        if (reg->_node != nullptr)
+            reg->_node->_register = nullptr;
+        reg->_node = expr;
+    }
+}
 
 /*
  * Function:	suffix (private)
@@ -51,6 +112,45 @@ static Register *parameters[] = {rdi, rsi, rdx, rcx, r8, r9};
 static string suffix(unsigned size)
 {
     return size == 1 ? "b\t" : (size == 4 ? "l\t" : "q\t");
+}
+
+void assigntemp(Expression *expr) {
+    stringstream ss;
+    tempoffset = tempoffset - expr->type().size();
+    ss << tempoffset << "(%rbp)";
+    expr->_operand = ss.str();
+}
+
+void load(Expression *expr, Register *reg) {
+    if (reg->_node != expr) {
+        if(reg->_node != nullptr) {
+            unsigned size = reg->_node->type().size();
+            assigntemp(reg->_node);
+            cout << "\tmov" << suffix(size) << reg->name(size) << ", " << reg->_node->_operand << endl;
+        }
+        if (expr != nullptr) {
+            unsigned size = expr->type().size();
+            cout << "\tmov" << suffix(size) << expr << ", ";
+            cout << reg->name(size) << endl;
+        }
+        assign(expr, reg);
+    }
+}
+
+Register *getreg() {
+    for (unsigned i = 0; i < registers.size(); i ++) {
+        if(registers[i]->name(4) == "%eax" || registers[i]->name(4) == "%edx")
+            continue;
+        if (registers[i]->_node == nullptr)
+            return registers[i];
+    }
+    abort();
+}
+
+void release() {
+    for(auto &reg: registers) {
+        assign(nullptr, reg);
+    }
 }
 
 
@@ -70,21 +170,6 @@ static int align(int offset)
 }
 
 
-/*
- * Function:	operator << (private)
- *
- * Description:	Write an expression to the specified stream.  This function
- *		first checks to see if the expression is in a register, and
- *		if not then uses its operand.
- */
-
-static ostream &operator <<(ostream &ostr, Expression *expr)
-{
-    if (expr->_register != nullptr)
-	return ostr << expr->_register;
-
-    return ostr << expr->_operand;
-}
 
 
 /*
@@ -122,6 +207,13 @@ void Identifier::generate()
 	ss << _symbol->_offset << "(%rbp)";
 
     _operand = ss.str();
+}
+
+
+void String::generate() {
+    StringLabel label(_value);
+    _operand = label.number();
+    string_labels.push_back(label);
 }
 
 
@@ -199,6 +291,8 @@ void Call::generate()
 
     if (bytesPushed > 0)
 	cout << "\taddq\t$" << bytesPushed << ", %rsp" << endl;
+
+    assign(this, rax);
 }
 
 
@@ -216,7 +310,19 @@ void Assignment::generate()
 {
     _left->generate();
     _right->generate();
-    cout << "\tmovl\t" << _right << ", " << _left << endl;
+
+    if(auto child = _left->isDereference()) {
+        if(_right->_register == nullptr)
+            load(_right, getreg());
+        if(child->_register == nullptr)
+            load(child, getreg());
+        cout << "\tmov" << suffix(_left->type().size()) << _right << ", (" << child << ")" << endl;
+    }
+    else {
+        if(_left->_register == nullptr && _right->_register == nullptr)
+            load(_right, getreg());
+        cout << "\tmov" << suffix(_left->type().size()) << _right << ", " << _left << endl;
+    }
 }
 
 
@@ -229,8 +335,10 @@ void Assignment::generate()
 
 void Block::generate()
 {
-    for (unsigned i = 0; i < _stmts.size(); i ++)
-	_stmts[i]->generate();
+    for (unsigned i = 0; i < _stmts.size(); i ++) {
+    	_stmts[i]->generate();
+        release();
+    }
 }
 
 
@@ -248,11 +356,13 @@ void Function::generate()
     unsigned numSpilled = _id->type().parameters()->size();
     const Symbols &symbols = _body->declarations()->symbols();
 
+    // Set the return label
+    return_label = Label(".function_");
+
 
     /* Assign offsets to all symbols within the scope of the function. */
 
     allocate(offset);
-
 
     /* Generate the prologue, body, and epilogue. */
 
@@ -261,11 +371,11 @@ void Function::generate()
     cout << "\tmovq\t%rsp, %rbp" << endl;
 
     if (SIMPLE_PROLOGUE) {
-	offset -= align(offset);
-	cout << "\tsubq\t$" << -offset << ", %rsp" << endl;
+    	offset -= align(offset);
+    	cout << "\tsubq\t$" << -offset << ", %rsp" << endl << endl;
     } else {
-	cout << "\tmovl\t$" << _id->name() << ".size, %eax" << endl;
-	cout << "\tsubq\t%rax, %rsp" << endl;
+    	cout << "\tmovl\t$" << _id->name() << ".size, %eax" << endl;
+    	cout << "\tsubq\t%rax, %rsp" << endl << endl;
     }
 
     if (numSpilled > NUM_ARGS_IN_REGS)
@@ -277,8 +387,14 @@ void Function::generate()
 	cout << ", " << symbols[i]->_offset << "(%rbp)" << endl;
     }
 
+    tempoffset = offset;
+
     _body->generate();
 
+    offset = tempoffset;
+
+    // Epilogue
+    cout << "\n" << return_label << ":" << endl;
     cout << "\tmovq\t%rbp, %rsp" << endl;
     cout << "\tpopq\t%rbp" << endl;
     cout << "\tret" << endl << endl;
@@ -294,6 +410,346 @@ void Function::generate()
     cout << "\t.globl\t" << global_prefix << _id->name() << endl << endl;
 }
 
+void Add::generate() {
+    _left->generate();
+    _right->generate();
+
+    cout << "\t# add" << endl;
+    if(_left->_register == nullptr)
+        load(_left, getreg());
+
+    cout << "\tadd" << suffix(_left->type().size()) << _right << ", " << _left << endl;
+
+    assign(_right, nullptr);
+    assign(this, _left->_register);
+}
+
+void Subtract::generate() {
+    _left->generate();
+    _right->generate();
+
+    cout << "\t# subtract" << endl;
+    if(_left->_register == nullptr)
+        load(_left, getreg());
+
+    cout << "\tsub" << suffix(_left->type().size()) << _right << ", " << _left << endl;
+
+    assign(_right, nullptr);
+    assign(this, _left->_register);
+}
+
+void Multiply::generate() {
+    _left->generate();
+    _right->generate();
+
+    cout << "\t# multiply" << endl;
+    if(_left->_register == nullptr)
+        load(_left, getreg());
+
+    cout << "\timul" << suffix(_left->type().size()) << _right << ", " << _left << endl;
+
+    assign(_right, nullptr);
+    assign(this, _left->_register);
+}
+
+void Divide::generate() {
+    _left->generate();
+    _right->generate();
+
+    cout << "\t# divide" << endl;
+    if(_left->_register == nullptr)
+        load(_left, getreg());
+    load(_right, getreg());
+
+    unsigned left_size = _left->type().size();
+    cout << "\tmov" << suffix(left_size) << _left << ", " << rax->name(left_size) << endl;
+    cout << "\tmov" << suffix(left_size) << rax->name(left_size) << ", " << rdx->name(left_size) << endl;
+    cout << "\tsar" << suffix(left_size) << "$31, " << rdx->name(left_size) << endl;
+    cout << "\tidiv" << suffix(_right->type().size()) << _right << endl;
+    cout << "\tmov" << suffix(_right->type().size()) << rax->name(_right->type().size()) << ", " << _left << endl;
+
+    assign(_right, nullptr);
+    assign(this, _left->_register);
+}
+
+void Remainder::generate() {
+    _left->generate();
+    _right->generate();
+
+    cout << "\t# remainder" << endl;
+    if(_left->_register == nullptr)
+        load(_left, getreg());
+    load(_right, getreg());
+
+    unsigned left_size = _left->type().size();
+    cout << "\tmov" << suffix(left_size) << _left << ", " << rax->name(left_size) << endl;
+    cout << "\tmov" << suffix(left_size) << rax->name(left_size) << ", " << rdx->name(left_size) << endl;
+    cout << "\tsar" << suffix(left_size) << "$31, " << rdx->name(left_size) << endl;
+    cout << "\tidiv" << suffix(_right->type().size()) << _right << endl;
+    cout << "\tmov" << suffix(_right->type().size()) << rdx->name(_right->type().size()) << ", " << _left << endl;
+
+    assign(_right, nullptr);
+    assign(this, _left->_register);
+}
+
+void LessThan::generate() {
+    _left->generate();
+    _right->generate();
+
+    cout << "\t# less than" << endl;
+    if(_left->_register == nullptr)
+        load(_left, getreg());
+
+    cout << "\tcmp" << suffix(_left->type().size()) << _right << ", " << _left << endl;
+    cout << "\tsetl\t" << _left->_register->name(1) << endl;
+    cout << "\tmovzbl\t" << _left->_register->name(1) << ", " << _left->_register->name(4) << endl;
+
+    assign(_right, nullptr);
+    assign(this, _left->_register);
+}
+
+void GreaterThan::generate() {
+    _left->generate();
+    _right->generate();
+
+    cout << "\t# greater than" << endl;
+    if(_left->_register == nullptr)
+        load(_left, getreg());
+
+    cout << "\tcmp" << suffix(_left->type().size()) << _right << ", " << _left << endl;
+    cout << "\tsetg\t" << _left->_register->name(1) << endl;
+    cout << "\tmovzbl\t" << _left->_register->name(1) << ", " << _left->_register->name(4) << endl;
+
+    assign(_right, nullptr);
+    assign(this, _left->_register);
+}
+
+void LessOrEqual::generate() {
+    _left->generate();
+    _right->generate();
+
+    cout << "\t# less than or equal" << endl;
+    if(_left->_register == nullptr)
+        load(_left, getreg());
+
+    cout << "\tcmp" << suffix(_left->type().size()) << _right << ", " << _left << endl;
+    cout << "\tsetle\t" << _left->_register->name(1) << endl;
+    cout << "\tmovzbl\t" << _left->_register->name(1) << ", " << _left->_register->name(4) << endl;
+
+    assign(_right, nullptr);
+    assign(this, _left->_register);
+}
+
+void GreaterOrEqual::generate() {
+    _left->generate();
+    _right->generate();
+
+    cout << "\t# greater than or equal" << endl;
+    if(_left->_register == nullptr)
+        load(_left, getreg());
+
+    cout << "\tcmp" << suffix(_left->type().size()) << _right << ", " << _left << endl;
+    cout << "\tsetge\t" << _left->_register->name(1) << endl;
+    cout << "\tmovzbl\t" << _left->_register->name(1) << ", " << _left->_register->name(4) << endl;
+
+    assign(_right, nullptr);
+    assign(this, _left->_register);
+}
+
+void Equal::generate() {
+    _left->generate();
+    _right->generate();
+
+    cout << "\t# equal" << endl;
+    if(_left->_register == nullptr)
+        load(_left, getreg());
+
+    cout << "\tcmp" << suffix(_left->type().size()) << _right << ", " << _left << endl;
+    cout << "\tsete\t" << _left->_register->name(1) << endl;
+    cout << "\tmovzbl\t" << _left->_register->name(1) << ", " << _left->_register->name(4) << endl;
+
+    assign(_right, nullptr);
+    assign(this, _left->_register);
+}
+
+void NotEqual::generate() {
+    _left->generate();
+    _right->generate();
+
+    cout << "\t# not equal" << endl;
+    if(_left->_register == nullptr)
+        load(_left, getreg());
+
+    cout << "\tcmp" << suffix(_left->type().size()) << _right << ", " << _left << endl;
+    cout << "\tsetne\t" << _left->_register->name(1) << endl;
+    cout << "\tmovzbl\t" << _left->_register->name(1) << ", " << _left->_register->name(4) << endl;
+
+    assign(_right, nullptr);
+    assign(this, _left->_register);
+}
+
+void Not::generate() {
+    _expr->generate();
+
+    cout << "\t# not" << endl;
+    if(_expr->_register == nullptr)
+        load(_expr, getreg());
+
+    cout << "\tcmp" << suffix(_expr->type().size()) << "$0, " << _expr << endl;
+    cout << "\tsete\t" << _expr->_register->name(1) << endl;
+    cout << "\tmovzbl\t" << _expr->_register->name(1) << ", " << _expr->_register->name(4) << endl;
+    assign(this, _expr->_register);
+}
+
+void Negate::generate() {
+    _expr->generate();
+
+    cout << "\t# negate" << endl;
+    if(_expr->_register == nullptr)
+        load(_expr, getreg());
+
+    cout << "\tneg" << suffix(_expr->type().size()) << _expr << endl;
+
+    assign(this, _expr->_register);
+}
+
+void Cast::generate() {
+    _expr->generate();
+
+    if(_type.size() > _expr->type().size()) {
+
+        cout << "\t# cast" << endl;
+        if(_expr->_register == nullptr)
+            load(_expr, getreg());
+
+        cout << "\tmovs" <<
+            (_expr->type().size() == 1 ? 'b' : _expr->type().size() == 4 ? 'l' : 'q') <<
+            (_type.size() == 1 ? 'b' : _type.size() == 4 ? 'l' : 'q') <<
+            "\t" << _expr << ", " << _expr->_register->name(_type.size()) << endl;
+    }
+
+    load(_expr, getreg());
+    assign(this, _expr->_register);
+}
+
+void Address::generate() {
+
+    if(auto child = _expr->isDereference()) {
+        child->generate();
+        load(child, getreg());
+        assign(this, child->_register);
+    }
+    else {
+        _expr->generate();
+
+        cout << "\t# address" << endl;
+
+        assign(this, getreg());
+        cout << "\tlea" << suffix(_type.size()) << _expr << ", " << this << endl;
+
+    }
+
+}
+
+void Dereference::generate() {
+    _expr->generate();
+
+    cout << "\t# dereference" << endl;
+    load(_expr, getreg());
+
+    assign(this, getreg());
+    cout << "\tmov" << suffix(_type.size()) << "(" << _expr << "), " << this << endl;
+
+}
+
+void LogicalOr::generate() {
+
+    cout << "\t# begin logical or" << endl;
+    _left->generate();
+    load(_left, getreg());
+
+    Label l1, l2;
+
+    cout << "\tcmp" << suffix(_left->type().size()) << "$0, " << _left << endl;
+    cout << "\tjne\t" << l1 << endl;
+    _right->generate();
+    cout << "\tcmp" << suffix(_left->type().size()) << "$0, " << _right << endl;
+    cout << "\tjne\t" << l1 << endl;
+    cout << "\tmov" << suffix(_left->type().size()) << "$0, " << _left << endl;
+    cout << "\tjmp\t" << l2 << endl;
+    cout << l1 << ":" << endl;
+    cout << "\tmov" << suffix(_left->type().size()) << "$1, " << _left << endl;
+    cout << l2 << ":" << endl;
+
+    cout << "\t# end logical or" << endl;
+
+    assign(_right, nullptr);
+    assign(this, _left->_register);
+}
+
+void LogicalAnd::generate() {
+
+    cout << "\t# begin logical and" << endl;
+    _left->generate();
+    load(_left, getreg());
+
+    Label l1, l2;
+
+    cout << "\tcmp" << suffix(_left->type().size()) << "$0, " << _left << endl;
+    cout << "\tje\t" << l1 << endl;
+    _right->generate();
+    cout << "\tcmp" << suffix(_left->type().size()) << "$0, " << _right << endl;
+    cout << "\tje\t" << l1 << endl;
+    cout << "\tmov" << suffix(_left->type().size()) << "$1, " << _left << endl;
+    cout << "\tjmp\t" << l2 << endl;
+    cout << l1 << ":" << endl;
+    cout << "\tmov" << suffix(_left->type().size()) << "$0, " << _left << endl;
+    cout << l2 << ":" << endl;
+
+    cout << "\t# end logical and" << endl;
+
+    assign(_right, nullptr);
+    assign(this, _left->_register);
+}
+
+void While::generate() {
+    Label loop(".loop"), _exit(".exit");
+
+    cout << "\t# begin while" << endl;
+    cout << loop << ":" << endl;
+    _expr->generate();
+    cout << "\tcmp" << suffix(_expr->type().size()) << "$0, " << _expr << endl;
+    cout << "\tje\t\t" << _exit << endl;
+    _stmt->generate();
+    cout << "\tjmp\t" << loop << endl;
+    cout << _exit << ":" << endl;
+    cout << "\t# end while" << endl;
+}
+
+void If::generate() {
+    Label skip(".skip"), _exit(".exit");
+
+    cout << "\t# begin if" << endl;
+    _expr->generate();
+    cout << "\tcmp" << suffix(_expr->type().size()) << "$0, " << _expr << endl;
+    cout << "\tje\t\t" << skip << endl;
+    _thenStmt->generate();
+    if(_elseStmt)
+        cout << "\tjmp\t" << _exit << endl;
+    cout << skip << ":" << endl;
+    if(_elseStmt) {
+        _elseStmt->generate();
+        cout << _exit << ":" << endl;
+    }
+    cout << "\t# end if" << endl;
+}
+
+void Return::generate() {
+    _expr->generate();
+
+    load(_expr, rax);
+    cout << "\tjmp\t" << return_label << endl;
+}
 
 /*
  * Function:	generateGlobals
@@ -306,8 +762,12 @@ void generateGlobals(Scope *scope)
     const Symbols &symbols = scope->symbols();
 
     for (unsigned i = 0; i < symbols.size(); i ++)
-	if (!symbols[i]->type().isFunction()) {
-	    cout << "\t.comm\t" << global_prefix << symbols[i]->name() << ", ";
-	    cout << symbols[i]->type().size() << endl;
-	}
+    	if (!symbols[i]->type().isFunction()) {
+    	    cout << "\t.comm\t" << global_prefix << symbols[i]->name() << ", ";
+    	    cout << symbols[i]->type().size() << endl;
+    	}
+
+    for(auto &sl: string_labels) {
+        cout << "\t" << sl.number() << ": .asciz\t" << sl.str() << endl;
+    }
 }

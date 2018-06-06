@@ -70,6 +70,8 @@ public:
 
     const Type &type() const;
     bool lvalue() const;
+    virtual void generate() {}
+    virtual Expression *isDereference() { return nullptr; }
 };
 
 
@@ -79,6 +81,7 @@ class Binary : public Expression {
 protected:
     Expression *_left, *_right;
     Binary(Expression *left, Expression *right, const Type &type);
+    virtual void generate() {}
 };
 
 
@@ -99,6 +102,7 @@ class String : public Expression {
 public:
     String(const string &value);
     const string &value() const;
+    virtual void generate();
 };
 
 
@@ -144,6 +148,7 @@ public:
 class Not : public Unary {
 public:
     Not(Expression *expr, const Type &type);
+    virtual void generate();
 };
 
 
@@ -152,6 +157,7 @@ public:
 class Negate : public Unary {
 public:
     Negate(Expression *expr, const Type &type);
+    virtual void generate();
 };
 
 
@@ -160,6 +166,8 @@ public:
 class Dereference : public Unary {
 public:
     Dereference(Expression *expr, const Type &type);
+    virtual void generate();
+    virtual Expression *isDereference() { return _expr; }
 };
 
 
@@ -168,6 +176,7 @@ public:
 class Address : public Unary {
 public:
     Address(Expression *expr, const Type &type);
+    virtual void generate();
 };
 
 
@@ -176,6 +185,7 @@ public:
 class Cast : public Unary {
 public:
     Cast(const Type &type, Expression *expr);
+    virtual void generate();
 };
 
 
@@ -184,6 +194,7 @@ public:
 class Multiply : public Binary {
 public:
     Multiply(Expression *left, Expression *right, const Type &type);
+    virtual void generate();
 };
 
 
@@ -192,6 +203,7 @@ public:
 class Divide : public Binary {
 public:
     Divide(Expression *left, Expression *right, const Type &type);
+    virtual void generate();
 };
 
 
@@ -200,6 +212,7 @@ public:
 class Remainder : public Binary {
 public:
     Remainder(Expression *left, Expression *right, const Type &type);
+    virtual void generate();
 };
 
 
@@ -208,6 +221,7 @@ public:
 class Add : public Binary {
 public:
     Add(Expression *left, Expression *right, const Type &type);
+    virtual void generate();
 };
 
 
@@ -216,6 +230,7 @@ public:
 class Subtract : public Binary {
 public:
     Subtract(Expression *left, Expression *right, const Type &type);
+    virtual void generate();
 };
 
 
@@ -224,6 +239,7 @@ public:
 class LessThan : public Binary {
 public:
     LessThan(Expression *left, Expression *right, const Type &type);
+    virtual void generate();
 };
 
 
@@ -232,6 +248,7 @@ public:
 class GreaterThan : public Binary {
 public:
     GreaterThan(Expression *left, Expression *right, const Type &type);
+    virtual void generate();
 };
 
 
@@ -240,6 +257,7 @@ public:
 class LessOrEqual : public Binary {
 public:
     LessOrEqual(Expression *left, Expression *right, const Type &type);
+    virtual void generate();
 };
 
 
@@ -248,6 +266,7 @@ public:
 class GreaterOrEqual : public Binary {
 public:
     GreaterOrEqual(Expression *left, Expression *right, const Type &type);
+    virtual void generate();
 };
 
 
@@ -256,6 +275,7 @@ public:
 class Equal : public Binary {
 public:
     Equal(Expression *left, Expression *right, const Type &type);
+    virtual void generate();
 };
 
 
@@ -264,6 +284,7 @@ public:
 class NotEqual : public Binary {
 public:
     NotEqual(Expression *left, Expression *right, const Type &type);
+    virtual void generate();
 };
 
 
@@ -272,6 +293,7 @@ public:
 class LogicalAnd: public Binary {
 public:
     LogicalAnd(Expression *left, Expression *right, const Type &type);
+    virtual void generate();
 };
 
 
@@ -280,6 +302,7 @@ public:
 class LogicalOr : public Binary {
 public:
     LogicalOr(Expression *left, Expression *right, const Type &type);
+    virtual void generate();
 };
 
 
@@ -301,6 +324,7 @@ class Return : public Statement {
 
 public:
     Return(Expression *expr);
+    virtual void generate();
 };
 
 
@@ -327,6 +351,7 @@ class While : public Statement {
 public:
     While(Expression *expr, Statement *stmt);
     virtual void allocate(int &offset) const;
+    virtual void generate();
 };
 
 
@@ -339,6 +364,7 @@ class If : public Statement {
 public:
     If(Expression *expr, Statement *thenStmt, Statement *elseStmt);
     virtual void allocate(int &offset) const;
+    virtual void generate();
 };
 
 
