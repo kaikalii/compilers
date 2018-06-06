@@ -466,7 +466,7 @@ void Divide::generate() {
     unsigned left_size = _left->type().size();
     cout << "\tmov" << suffix(left_size) << _left << ", " << rax->name(left_size) << endl;
     cout << "\tmov" << suffix(left_size) << rax->name(left_size) << ", " << rdx->name(left_size) << endl;
-    cout << "\tsar" << suffix(left_size) << left_size == 4 ? "$31, " : "$63, " << rdx->name(left_size) << endl;
+    cout << "\tsar" << suffix(left_size) << (left_size == 4) ? "$31, " : "$63, " << rdx->name(left_size) << endl;
     cout << "\tidiv" << suffix(_right->type().size()) << _right << endl;
     cout << "\tmov" << suffix(_right->type().size()) << rax->name(_right->type().size()) << ", " << _left << endl;
 
