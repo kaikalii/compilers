@@ -12,112 +12,103 @@ main:
 	# cast
 	movb	-30(%rbp), %dil
 	movsbl	%dil, %edi
-	movb	%dil, %sil
 	# add
-	movl	-12(%rbp), %edi
-	addl	%esi, %edi
+	movl	-12(%rbp), %esi
+	addl	%edi, %esi
 	# cast
-	movb	-31(%rbp), %sil
-	movsbl	%sil, %esi
-	movb	%sil, %cl
+	movb	-31(%rbp), %dil
+	movsbl	%dil, %edi
 	# add
-	addl	%ecx, %edi
-	movl	%edi, -4(%rbp)
+	addl	%edi, %esi
+	movl	%esi, -4(%rbp)
 	# cast
 	movb	-30(%rbp), %dil
 	movsbl	%dil, %edi
-	movb	%dil, %sil
 	# subtract
-	movl	-12(%rbp), %edi
-	subl	%esi, %edi
+	movl	-12(%rbp), %esi
+	subl	%edi, %esi
 	# cast
-	movb	-31(%rbp), %sil
-	movsbl	%sil, %esi
-	movb	%sil, %cl
+	movb	-31(%rbp), %dil
+	movsbl	%dil, %edi
 	# subtract
-	subl	%ecx, %edi
+	subl	%edi, %esi
 	# cast
-	movslq	%edi, %rdi
-	movl	%edi, %esi
+	movslq	%esi, %rsi
 	movq	%rsi, -20(%rbp)
 	# cast
 	movb	-30(%rbp), %dil
 	movsbl	%dil, %edi
-	movb	%dil, %sil
 	# multiply
-	movl	-12(%rbp), %edi
-	imull	%esi, %edi
+	movl	-12(%rbp), %esi
+	imull	%edi, %esi
 	# cast
-	movb	-31(%rbp), %sil
-	movsbl	%sil, %esi
-	movb	%sil, %cl
+	movb	-31(%rbp), %dil
+	movsbl	%dil, %edi
 	# multiply
-	imull	%ecx, %edi
+	imull	%edi, %esi
 	# cast
-	movslq	%edi, %rdi
-	movl	%edi, %esi
+	movslq	%esi, %rsi
 	movq	%rsi, -28(%rbp)
 	# cast
 	movb	-30(%rbp), %dil
 	movsbl	%dil, %edi
-	movb	%dil, %sil
 	# divide
-	movl	-12(%rbp), %edi
-	movl	%esi, %ecx
-	movl	%edi, %eax
+	movl	-12(%rbp), %esi
+	movl	%edi, %ecx
+	movl	%esi, %eax
 	movl	%eax, %edx
 	sarl	$31, %edx
 	idivl	%ecx
-	movl	%eax, %edi
+	movl	%eax, %esi
 	# cast
-	movb	-31(%rbp), %sil
-	movsbl	%sil, %esi
-	movb	%sil, %cl
+	movb	-31(%rbp), %dil
+	movsbl	%dil, %edi
 	# add
-	addl	%ecx, %edi
-	movl	%edi, -8(%rbp)
+	addl	%edi, %esi
+	movl	%esi, -8(%rbp)
 	# cast
 	movb	-30(%rbp), %dil
 	movsbl	%dil, %edi
-	movb	%dil, %sil
 	# remainder
-	movl	-12(%rbp), %edi
-	movl	%esi, %ecx
-	movl	%edi, %eax
+	movl	-12(%rbp), %esi
+	movl	%edi, %ecx
+	movl	%esi, %eax
 	movl	%eax, %edx
 	sarl	$31, %edx
 	idivl	%ecx
-	movl	%edx, %edi
+	movl	%edx, %esi
 	# cast
-	movb	-31(%rbp), %sil
-	movsbl	%sil, %esi
-	movb	%sil, %cl
+	movb	-31(%rbp), %dil
+	movsbl	%dil, %edi
 	# subtract
-	subl	%ecx, %edi
-	movl	%edi, %esi
+	subl	%edi, %esi
 	movb	%sil, -29(%rbp)
 	# address
 	leaq	string2, %rdi
+	movq	%rdi, -40(%rbp)
 	movl	-4(%rbp), %esi
-	movq	%rdi, %rdi
+	movq	-40(%rbp), %rdi
 	movl	$0, %eax
 	call	printf
 	# address
 	leaq	string3, %rdi
+	movq	%rdi, -48(%rbp)
 	movq	-20(%rbp), %rsi
-	movq	%rdi, %rdi
+	movq	-48(%rbp), %rdi
 	movl	$0, %eax
 	call	printf
 	# address
 	leaq	string4, %rdi
+	movq	%rdi, -56(%rbp)
 	movq	-28(%rbp), %rsi
-	movq	%rdi, %rdi
+	movq	-56(%rbp), %rdi
 	movl	$0, %eax
 	call	printf
 	# address
 	leaq	string5, %rdi
+	movq	%rdi, -64(%rbp)
 	movl	-8(%rbp), %esi
-	movq	%rdi, %rdi
+	movq	-64(%rbp), %rdi
 	movl	$0, %eax
 	call	printf
 	# address
@@ -125,9 +116,10 @@ main:
 	# cast
 	movb	-29(%rbp), %sil
 	movsbl	%sil, %esi
-	movb	%sil, %cl
-	movl	%ecx, %esi
-	movq	%rdi, %rdi
+	movq	%rdi, -72(%rbp)
+	movl	%esi, -76(%rbp)
+	movl	-76(%rbp), %esi
+	movq	-72(%rbp), %rdi
 	movl	$0, %eax
 	call	printf
 

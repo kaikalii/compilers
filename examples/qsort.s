@@ -19,15 +19,16 @@ readarray:
 	# cast
 	movl	-4(%rbp), %ecx
 	movslq	%ecx, %rcx
-	movl	%ecx, %r8d
 	# multiply
-	imulq	$4, %r8
+	imulq	$4, %rcx
 	# add
-	movq	a, %rcx
-	addq	%r8, %rcx
-	movq	%rcx, %r8
-	movq	%r8, %rsi
-	movq	%rsi, %rdi
+	movq	a, %r8
+	addq	%rcx, %r8
+	movl	%edi, -20(%rbp)
+	movq	%rsi, -28(%rbp)
+	movq	%r8, -36(%rbp)
+	movq	-36(%rbp), %rsi
+	movq	-28(%rbp), %rdi
 	movl	$0, %eax
 	call	scanf
 	# add
@@ -66,17 +67,19 @@ writearray:
 	# cast
 	movl	-4(%rbp), %ecx
 	movslq	%ecx, %rcx
-	movl	%ecx, %r8d
 	# multiply
-	imulq	$4, %r8
+	imulq	$4, %rcx
 	# add
-	movq	a, %rcx
-	addq	%r8, %rcx
+	movq	a, %r8
+	addq	%rcx, %r8
 	# dereference
-	movq	%rcx, %r8
 	movl	(%r8), %ecx
-	movl	%ecx, %esi
-	movq	%rsi, %rdi
+	movl	%edi, -20(%rbp)
+	movq	%rsi, -28(%rbp)
+	movl	%ecx, -32(%rbp)
+	movq	%r8, -40(%rbp)
+	movl	-32(%rbp), %esi
+	movq	-28(%rbp), %rdi
 	movl	$0, %eax
 	call	printf
 	# add
@@ -88,7 +91,8 @@ writearray:
 	# end while
 	# address
 	leaq	string9, %rdi
-	movq	%rdi, %rdi
+	movq	%rdi, -48(%rbp)
+	movq	-48(%rbp), %rdi
 	movl	$0, %eax
 	call	printf
 
@@ -141,14 +145,12 @@ partition:
 	# cast
 	movl	-12(%rbp), %edi
 	movslq	%edi, %rdi
-	movl	%edi, %esi
 	# multiply
-	imulq	$4, %rsi
+	imulq	$4, %rdi
 	# add
-	movq	-8(%rbp), %rdi
-	addq	%rsi, %rdi
+	movq	-8(%rbp), %rsi
+	addq	%rdi, %rsi
 	# dereference
-	movq	%rdi, %rsi
 	movl	(%rsi), %edi
 	movl	%edi, -28(%rbp)
 	# subtract
@@ -177,14 +179,12 @@ partition:
 	# cast
 	movl	-24(%rbp), %edi
 	movslq	%edi, %rdi
-	movl	%edi, %esi
 	# multiply
-	imulq	$4, %rsi
+	imulq	$4, %rdi
 	# add
-	movq	-8(%rbp), %rdi
-	addq	%rsi, %rdi
+	movq	-8(%rbp), %rsi
+	addq	%rdi, %rsi
 	# dereference
-	movq	%rdi, %rsi
 	movl	(%rsi), %edi
 	# greater than
 	cmpl	-28(%rbp), %edi
@@ -208,14 +208,12 @@ partition:
 	# cast
 	movl	-20(%rbp), %edi
 	movslq	%edi, %rdi
-	movl	%edi, %esi
 	# multiply
-	imulq	$4, %rsi
+	imulq	$4, %rdi
 	# add
-	movq	-8(%rbp), %rdi
-	addq	%rsi, %rdi
+	movq	-8(%rbp), %rsi
+	addq	%rdi, %rsi
 	# dereference
-	movq	%rdi, %rsi
 	movl	(%rsi), %edi
 	# less than
 	cmpl	-28(%rbp), %edi
@@ -241,32 +239,32 @@ partition:
 	# cast
 	movl	-20(%rbp), %esi
 	movslq	%esi, %rsi
-	movl	%esi, %ecx
 	# multiply
-	imulq	$4, %rcx
+	imulq	$4, %rsi
 	# add
-	movq	-8(%rbp), %rsi
-	addq	%rcx, %rsi
-	movq	%rsi, %rcx
+	movq	-8(%rbp), %rcx
+	addq	%rsi, %rcx
 	# cast
 	movl	-24(%rbp), %esi
 	movslq	%esi, %rsi
-	movl	%esi, %r8d
 	# multiply
-	imulq	$4, %r8
+	imulq	$4, %rsi
 	# add
-	movq	-8(%rbp), %rsi
-	addq	%r8, %rsi
-	movq	%rsi, %r8
-	movq	%r8, %rsi
-	movq	%rcx, %rdi
+	movq	-8(%rbp), %r8
+	addq	%rsi, %r8
+	movl	%edi, -36(%rbp)
+	movq	%rcx, -44(%rbp)
+	movq	%r8, -52(%rbp)
+	movq	-52(%rbp), %rsi
+	movq	-44(%rbp), %rdi
 	call	exchange
 .skip18:
 	# end if
 	jmp	.loop12
 .exit13:
 	# end while
-	movl	%eax, -36(%rbp)
+	# return
+	movl	%eax, -56(%rbp)
 	movl	-24(%rbp), %eax
 	jmp	.function_11
 
@@ -293,6 +291,7 @@ quicksort:
 	movzbl	%dil, %edi
 	cmpl	$0, %edi
 	je		.skip21
+	movl	%edi, -36(%rbp)
 	movl	-16(%rbp), %edx
 	movl	-12(%rbp), %esi
 	movq	-8(%rbp), %rdi
@@ -305,8 +304,9 @@ quicksort:
 	# add
 	movl	-20(%rbp), %edi
 	addl	$1, %edi
+	movl	%edi, -40(%rbp)
 	movl	-16(%rbp), %edx
-	movl	%edi, %esi
+	movl	-40(%rbp), %esi
 	movq	-8(%rbp), %rdi
 	call	quicksort
 .skip21:
@@ -329,10 +329,10 @@ main:
 	# cast
 	movl	n, %edi
 	movslq	%edi, %rdi
-	movl	%edi, %esi
 	# multiply
-	imulq	$4, %rsi
-	movq	%rsi, %rdi
+	imulq	$4, %rdi
+	movq	%rdi, -8(%rbp)
+	movq	-8(%rbp), %rdi
 	movl	$0, %eax
 	call	malloc
 	movq	%rax, a
@@ -340,7 +340,8 @@ main:
 	# subtract
 	movl	n, %edi
 	subl	$1, %edi
-	movl	%edi, %edx
+	movl	%edi, -12(%rbp)
+	movl	-12(%rbp), %edx
 	movl	$0, %esi
 	movq	a, %rdi
 	call	quicksort

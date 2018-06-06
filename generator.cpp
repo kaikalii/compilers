@@ -130,8 +130,7 @@ void load(Expression *expr, Register *reg) {
         }
         if (expr != nullptr) {
             unsigned size = expr->type().size();
-            cout << "\tmov" << suffix(size) << expr << ", ";
-            cout << reg->name(size) << endl;
+            cout << "\tmov" << suffix(size) << expr << ", " << reg->name(size) << endl;
         }
         assign(expr, reg);
     }
@@ -239,9 +238,12 @@ void Call::generate()
 
     /* Generate code for all the arguments first. */
 
-    for (unsigned i = 0; i < _args.size(); i ++)
-	_args[i]->generate();
+    for (auto &arg: _args)
+	   arg->generate();
 
+    for (auto &reg: registers) {
+        load(nullptr, reg);
+    }
 
     /* Adjust the stack if necessary. */
 
@@ -628,7 +630,8 @@ void Cast::generate() {
             "\t" << _expr << ", " << _expr->_register->name(_type.size()) << endl;
     }
 
-    load(_expr, getreg());
+    if(_expr->_register == nullptr)
+        load(_expr, getreg());
     assign(this, _expr->_register);
 }
 
@@ -636,7 +639,8 @@ void Address::generate() {
 
     if(auto child = _expr->isDereference()) {
         child->generate();
-        load(child, getreg());
+        if(child->_register == nullptr)
+            load(child, getreg());
         assign(this, child->_register);
     }
     else {
@@ -655,7 +659,8 @@ void Dereference::generate() {
     _expr->generate();
 
     cout << "\t# dereference" << endl;
-    load(_expr, getreg());
+    if(_expr->_register == nullptr)
+        load(_expr, getreg());
 
     assign(this, getreg());
     cout << "\tmov" << suffix(_type.size()) << "(" << _expr << "), " << this << endl;
@@ -666,7 +671,8 @@ void LogicalOr::generate() {
 
     cout << "\t# begin logical or" << endl;
     _left->generate();
-    load(_left, getreg());
+    if(_left->_register == nullptr)
+        load(_left, getreg());
 
     Label l1, l2;
 
@@ -691,7 +697,8 @@ void LogicalAnd::generate() {
 
     cout << "\t# begin logical and" << endl;
     _left->generate();
-    load(_left, getreg());
+    if(_left->_register == nullptr)
+        load(_left, getreg());
 
     Label l1, l2;
 
@@ -747,6 +754,7 @@ void If::generate() {
 void Return::generate() {
     _expr->generate();
 
+    cout << "\t# return" << endl;
     load(_expr, rax);
     cout << "\tjmp\t" << return_label << endl;
 }

@@ -51,32 +51,37 @@ main:
 	movl	%edi, -32(%rbp)
 	# address
 	leaq	string2, %rdi
+	movq	%rdi, -40(%rbp)
 	movl	-16(%rbp), %esi
-	movq	%rdi, %rdi
+	movq	-40(%rbp), %rdi
 	movl	$0, %eax
 	call	printf
 	# address
 	leaq	string3, %rdi
+	movq	%rdi, -48(%rbp)
 	movl	-20(%rbp), %esi
-	movq	%rdi, %rdi
+	movq	-48(%rbp), %rdi
 	movl	$0, %eax
 	call	printf
 	# address
 	leaq	string4, %rdi
+	movq	%rdi, -56(%rbp)
 	movl	-24(%rbp), %esi
-	movq	%rdi, %rdi
+	movq	-56(%rbp), %rdi
 	movl	$0, %eax
 	call	printf
 	# address
 	leaq	string5, %rdi
+	movq	%rdi, -64(%rbp)
 	movl	-28(%rbp), %esi
-	movq	%rdi, %rdi
+	movq	-64(%rbp), %rdi
 	movl	$0, %eax
 	call	printf
 	# address
 	leaq	string6, %rdi
+	movq	%rdi, -72(%rbp)
 	movl	-32(%rbp), %esi
-	movq	%rdi, %rdi
+	movq	-72(%rbp), %rdi
 	movl	$0, %eax
 	call	printf
 

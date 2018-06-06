@@ -10,6 +10,7 @@ foo:
 	# add
 	movl	x, %edi
 	addl	$1, %edi
+	# return
 	movl	%edi, %eax
 	jmp	.function_1
 

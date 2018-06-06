@@ -5,7 +5,8 @@ main:
 
 	# address
 	leaq	string2, %rdi
-	movq	%rdi, %rdi
+	movq	%rdi, -8(%rbp)
+	movq	-8(%rbp), %rdi
 	movl	$0, %eax
 	call	printf
 
