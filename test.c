@@ -1,9 +1,13 @@
 int printf();
-int add(int a, int b) {
-    return a + b;
-}
 int main(void) {
-    int x[10];
-    x[1] = 6;
-    printf("%d\n", x[1]);
+    int i, j;
+    i = 0;
+    while(i < 10) {
+        j = 0;
+        while(j < i) {
+            printf("%d * %d = %d\n", i, j, i * j);
+            j = j + 1;
+        }
+        i = i + 1;
+    }
 }

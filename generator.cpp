@@ -461,7 +461,8 @@ void Divide::generate() {
     cout << "\t# divide" << endl;
     if(_left->_register == nullptr)
         load(_left, getreg());
-    load(_right, getreg());
+    if(isNumber(_right))
+        load(_right, getreg());
 
     unsigned left_size = _left->type().size();
     cout << "\tmov" << suffix(left_size) << _left << ", " << rax->name(left_size) << endl;
@@ -481,12 +482,13 @@ void Remainder::generate() {
     cout << "\t# remainder" << endl;
     if(_left->_register == nullptr)
         load(_left, getreg());
-    load(_right, getreg());
+    if(isNumber(_right))
+        load(_right, getreg());
 
     unsigned left_size = _left->type().size();
     cout << "\tmov" << suffix(left_size) << _left << ", " << rax->name(left_size) << endl;
     cout << "\tmov" << suffix(left_size) << rax->name(left_size) << ", " << rdx->name(left_size) << endl;
-    cout << "\tsar" << suffix(left_size) << ((left_size == 4) ? "$31, " : "$63, ") << rdx->name(left_size) << rdx->name(left_size) << endl;
+    cout << "\tsar" << suffix(left_size) << ((left_size == 4) ? "$31, " : "$63, ") << rdx->name(left_size) << endl;
     cout << "\tidiv" << suffix(_right->type().size()) << _right << endl;
     cout << "\tmov" << suffix(_right->type().size()) << rdx->name(_right->type().size()) << ", " << _left << endl;
 

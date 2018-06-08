@@ -1,7 +1,8 @@
 lexan:
 	pushq	%rbp
 	movq	%rsp, %rbp
-	subq	$16, %rsp
+	movl	$lexan.size, %eax
+	subq	%rax, %rsp
 
 	# begin if
 	# equal
@@ -11,7 +12,7 @@ lexan:
 	movzbl	%r15b, %r15d
 	cmpl	$0, %r15d
 	je		.skip2
-	movl	%r15d, -20(%rbp)
+	movl	%r15d, -12(%rbp)
 	movl	$0, %eax
 	call	getchar
 	movl	%eax, c
@@ -40,7 +41,7 @@ lexan:
 	# end logical and
 	cmpl	$0, %eax
 	je		.exit5
-	movl	%eax, -24(%rbp)
+	movl	%eax, -16(%rbp)
 	movl	$0, %eax
 	call	getchar
 	movl	%eax, c
@@ -101,12 +102,14 @@ lexan:
 	popq	%rbp
 	ret
 
+	.set	lexan.size, 16
 	.globl	lexan
 
 match:
 	pushq	%rbp
 	movq	%rsp, %rbp
-	subq	$16, %rsp
+	movl	$match.size, %eax
+	subq	%rax, %rsp
 
 	movl	%edi, -4(%rbp)
 	# begin if
@@ -119,10 +122,10 @@ match:
 	je		.skip13
 	# address
 	leaq	string15, %r14
-	movl	%r15d, -20(%rbp)
-	movq	%r14, -28(%rbp)
+	movl	%r15d, -8(%rbp)
+	movq	%r14, -16(%rbp)
 	movl	lookahead, %esi
-	movq	-28(%rbp), %rdi
+	movq	-16(%rbp), %rdi
 	movl	$0, %eax
 	call	printf
 	movl	$1, %edi
@@ -138,12 +141,14 @@ match:
 	popq	%rbp
 	ret
 
+	.set	match.size, 16
 	.globl	match
 
 factor:
 	pushq	%rbp
 	movq	%rsp, %rbp
-	subq	$16, %rsp
+	movl	$factor.size, %eax
+	subq	%rax, %rsp
 
 	# begin if
 	# equal
@@ -153,7 +158,7 @@ factor:
 	movzbl	%r15b, %r15d
 	cmpl	$0, %r15d
 	je		.skip17
-	movl	%r15d, -20(%rbp)
+	movl	%r15d, -8(%rbp)
 	movl	LPAREN, %edi
 	call	match
 	movl	$0, %eax
@@ -179,12 +184,14 @@ factor:
 	popq	%rbp
 	ret
 
+	.set	factor.size, 16
 	.globl	factor
 
 term:
 	pushq	%rbp
 	movq	%rsp, %rbp
-	subq	$16, %rsp
+	movl	$term.size, %eax
+	subq	%rax, %rsp
 
 	call	factor
 	movl	%eax, -4(%rbp)
@@ -221,8 +228,8 @@ term:
 	movzbl	%r14b, %r14d
 	cmpl	$0, %r14d
 	je		.skip24
-	movl	%r15d, -20(%rbp)
-	movl	%r14d, -24(%rbp)
+	movl	%r15d, -8(%rbp)
+	movl	%r14d, -12(%rbp)
 	movl	STAR, %edi
 	call	match
 	call	factor
@@ -237,11 +244,10 @@ term:
 	call	factor
 	# divide
 	movl	-4(%rbp), %r15d
-	movl	%eax, %r14d
 	movl	%r15d, %eax
 	movl	%eax, %edx
 	sarl	$31, %edx
-	idivl	%r14d
+	idivl	%eax
 	movl	%eax, %r15d
 	movl	%r15d, -4(%rbp)
 	.exit25:
@@ -258,12 +264,14 @@ term:
 	popq	%rbp
 	ret
 
+	.set	term.size, 16
 	.globl	term
 
 expr:
 	pushq	%rbp
 	movq	%rsp, %rbp
-	subq	$16, %rsp
+	movl	$expr.size, %eax
+	subq	%rax, %rsp
 
 	call	term
 	movl	%eax, -4(%rbp)
@@ -300,8 +308,8 @@ expr:
 	movzbl	%r14b, %r14d
 	cmpl	$0, %r14d
 	je		.skip31
-	movl	%r15d, -20(%rbp)
-	movl	%r14d, -24(%rbp)
+	movl	%r15d, -8(%rbp)
+	movl	%r14d, -12(%rbp)
 	movl	PLUS, %edi
 	call	match
 	call	term
@@ -332,12 +340,14 @@ expr:
 	popq	%rbp
 	ret
 
+	.set	expr.size, 16
 	.globl	expr
 
 main:
 	pushq	%rbp
 	movq	%rsp, %rbp
-	subq	$16, %rsp
+	movl	$main.size, %eax
+	subq	%rax, %rsp
 
 	movl	$256, %r15d
 	movl	%r15d, NUM
@@ -404,14 +414,14 @@ main:
 	movzbl	%r14b, %r14d
 	cmpl	$0, %r14d
 	je		.exit42
-	movl	%r14d, -20(%rbp)
+	movl	%r14d, -8(%rbp)
 	call	expr
 	movl	%eax, -4(%rbp)
 	# address
 	leaq	string43, %r15
-	movq	%r15, -28(%rbp)
+	movq	%r15, -16(%rbp)
 	movl	-4(%rbp), %esi
-	movq	-28(%rbp), %rdi
+	movq	-16(%rbp), %rdi
 	movl	$0, %eax
 	call	printf
 	# begin while
@@ -423,7 +433,7 @@ main:
 	movzbl	%r15b, %r15d
 	cmpl	$0, %r15d
 	je		.exit45
-	movl	%r15d, -32(%rbp)
+	movl	%r15d, -20(%rbp)
 	movl	NL, %edi
 	call	match
 	jmp	.loop44
@@ -438,6 +448,7 @@ main:
 	popq	%rbp
 	ret
 
+	.set	main.size, 32
 	.globl	main
 
 	.comm	NUM, 4

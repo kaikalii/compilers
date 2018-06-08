@@ -730,7 +730,7 @@ static Statement *statement()
 	match('}');
 	return new Block(decls, stmts);
     }
-    
+
     if (lookahead == RETURN) {
 	match(RETURN);
 	expr = expression();
@@ -738,7 +738,7 @@ static Statement *statement()
 	match(';');
 	return new Return(expr);
     }
-    
+
     if (lookahead == WHILE) {
 	match(WHILE);
 	match('(');
@@ -748,7 +748,7 @@ static Statement *statement()
 	stmt = statement();
 	return new While(expr, stmt);
     }
-    
+
     if (lookahead == IF) {
 	match(IF);
 	match('(');
@@ -906,7 +906,7 @@ static void remainingDeclarators(int typespec)
  * 		global-or-function:
  * 		  specifier pointers identifier remaining-decls
  * 		  specifier pointers identifier [ num ] remaining-decls
- * 		  specifier pointers identifier ( ) remaining-decls 
+ * 		  specifier pointers identifier ( ) remaining-decls
  * 		  specifier pointers identifier ( parameters ) { ... }
  */
 

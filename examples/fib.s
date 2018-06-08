@@ -1,18 +1,10 @@
 fib:
 	pushq	%rbp
 	movq	%rsp, %rbp
-	subq	$16, %rsp
+	movl	$fib.size, %eax
+	subq	%rax, %rsp
 
 	movl	%edi, -4(%rbp)
-	movl	$0, %r15d
-	movl	%r15d, -8(%rbp)
-	# address
-	leaq	string2, %r15
-	movq	%r15, -24(%rbp)
-	movl	-4(%rbp), %esi
-	movq	-24(%rbp), %rdi
-	movl	$0, %eax
-	call	printf
 	# begin if
 	# begin logical or
 	# equal
@@ -21,56 +13,45 @@ fib:
 	sete	%r15b
 	movzbl	%r15b, %r15d
 	cmpl	$0, %r15d
-	jne	.L5
+	jne	.L4
 	# equal
 	movl	-4(%rbp), %r14d
 	cmpl	$1, %r14d
 	sete	%r14b
 	movzbl	%r14b, %r14d
 	cmpl	$0, %r14d
-	jne	.L5
+	jne	.L4
 	movl	$0, %r15d
-	jmp	.L6
-	.L5:
+	jmp	.L5
+	.L4:
 	movl	$1, %r15d
-	.L6:
+	.L5:
 	# end logical or
 	cmpl	$0, %r15d
-	je		.skip3
-	movl	$1, %r14d
-	movl	%r14d, -8(%rbp)
-	jmp	.exit4
-	.skip3:
+	je		.skip2
+	# return
+	movl	$1, %eax
+	jmp	.function_1
+	.skip2:
+	# end if
 	# subtract
-	movl	-4(%rbp), %r13d
-	subl	$1, %r13d
-	movl	%r15d, -28(%rbp)
-	movl	%r14d, -32(%rbp)
-	movl	%r13d, -36(%rbp)
-	movl	-36(%rbp), %edi
+	movl	-4(%rbp), %r15d
+	subl	$1, %r15d
+	movl	%r15d, -8(%rbp)
+	movl	-8(%rbp), %edi
 	call	fib
 	# subtract
 	movl	-4(%rbp), %r15d
 	subl	$2, %r15d
-	movl	%r15d, -40(%rbp)
-	movl	%eax, -44(%rbp)
-	movl	-40(%rbp), %edi
+	movl	%r15d, -12(%rbp)
+	movl	%eax, -16(%rbp)
+	movl	-12(%rbp), %edi
 	call	fib
 	# add
-	movl	-44(%rbp), %r15d
+	movl	-16(%rbp), %r15d
 	addl	%eax, %r15d
-	movl	%r15d, -8(%rbp)
-	.exit4:
-	# end if
-	# address
-	leaq	string7, %r15
-	movq	%r15, -52(%rbp)
-	movl	-8(%rbp), %esi
-	movq	-52(%rbp), %rdi
-	movl	$0, %eax
-	call	printf
 	# return
-	movl	-8(%rbp), %eax
+	movl	%r15d, %eax
 	jmp	.function_1
 
 	.function_1:
@@ -78,42 +59,43 @@ fib:
 	popq	%rbp
 	ret
 
+	.set	fib.size, 16
 	.globl	fib
 
 main:
 	pushq	%rbp
 	movq	%rsp, %rbp
-	subq	$16, %rsp
+	movl	$main.size, %eax
+	subq	%rax, %rsp
 
 	# address
-	leaq	string9, %r15
+	leaq	string7, %r15
 	# address
 	leaq	-4(%rbp), %r14
-	movq	%r15, -24(%rbp)
-	movq	%r14, -32(%rbp)
-	movq	-32(%rbp), %rsi
-	movq	-24(%rbp), %rdi
+	movq	%r15, -12(%rbp)
+	movq	%r14, -20(%rbp)
+	movq	-20(%rbp), %rsi
+	movq	-12(%rbp), %rdi
 	movl	$0, %eax
 	call	scanf
 	# address
-	leaq	string10, %r15
-	movq	%r15, -40(%rbp)
+	leaq	string8, %r15
+	movq	%r15, -28(%rbp)
 	movl	-4(%rbp), %edi
 	call	fib
-	movl	%eax, -44(%rbp)
-	movl	-44(%rbp), %esi
-	movq	-40(%rbp), %rdi
+	movl	%eax, -32(%rbp)
+	movl	-32(%rbp), %esi
+	movq	-28(%rbp), %rdi
 	movl	$0, %eax
 	call	printf
 
-	.function_8:
+	.function_6:
 	movq	%rbp, %rsp
 	popq	%rbp
 	ret
 
+	.set	main.size, 32
 	.globl	main
 
-	string2: .asciz	"%d\n"
-	string7: .asciz	"-%d\n"
-	string9: .asciz	"%d"
-	string10: .asciz	"%d\n"
+	string7: .asciz	"%d"
+	string8: .asciz	"%d\n"

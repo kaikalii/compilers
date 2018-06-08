@@ -1,7 +1,8 @@
 main:
 	pushq	%rbp
 	movq	%rsp, %rbp
-	subq	$32, %rsp
+	movl	$main.size, %eax
+	subq	%rax, %rsp
 
 	movl	$100, %r15d
 	movl	%r15d, -4(%rbp)
@@ -29,22 +30,20 @@ main:
 	movl	%r15d, -24(%rbp)
 	# divide
 	movl	-4(%rbp), %r15d
-	movl	-8(%rbp), %r14d
 	movl	%r15d, %eax
 	movl	%eax, %edx
 	sarl	$31, %edx
-	idivl	%r14d
+	idivl	-8(%rbp)
 	movl	%eax, %r15d
 	# add
 	addl	-12(%rbp), %r15d
 	movl	%r15d, -28(%rbp)
 	# remainder
 	movl	-4(%rbp), %r15d
-	movl	-8(%rbp), %r14d
 	movl	%r15d, %eax
 	movl	%eax, %edx
 	sarl	$31, %edx
-	idivl	%r14d
+	idivl	-8(%rbp)
 	movl	%edx, %r15d
 	# subtract
 	subl	-12(%rbp), %r15d
@@ -90,6 +89,7 @@ main:
 	popq	%rbp
 	ret
 
+	.set	main.size, 80
 	.globl	main
 
 	string2: .asciz	"%d\n"

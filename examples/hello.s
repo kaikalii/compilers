@@ -1,7 +1,8 @@
 main:
 	pushq	%rbp
 	movq	%rsp, %rbp
-	subq	$0, %rsp
+	movl	$main.size, %eax
+	subq	%rax, %rsp
 
 	# address
 	leaq	string2, %r15
@@ -15,6 +16,7 @@ main:
 	popq	%rbp
 	ret
 
+	.set	main.size, 16
 	.globl	main
 
 	string2: .asciz	"hello world\n"

@@ -17,10 +17,10 @@ int lexan(void)
 	c = getchar();
 
     if (!isdigit(c)) {
-    	int x;
-    	x = c;
-    	c = 0;
-    	return x;
+	int x;
+	x = c;
+	c = 0;
+	return x;
     }
 
     n = 0;
@@ -69,8 +69,8 @@ int factor(void)
 int term(void)
 {
     int n;
-
-
+    
+    
     n = factor();
 
     while (lookahead == STAR || lookahead == SLASH) {
@@ -125,10 +125,10 @@ int main(void)
     lookahead = lexan();
 
     while (lookahead != -1) {
-    	n = expr();
-    	printf("%d\n", n);
+	n = expr();
+	printf("%d\n", n);
 
-        while (lookahead == NL)
-            match(NL);
+	while (lookahead == NL)
+	    match(NL);
     }
 }

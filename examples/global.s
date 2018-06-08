@@ -1,7 +1,8 @@
 foo:
 	pushq	%rbp
 	movq	%rsp, %rbp
-	subq	$0, %rsp
+	movl	$foo.size, %eax
+	subq	%rax, %rsp
 
 	# add
 	movl	x, %r15d
@@ -19,12 +20,14 @@ foo:
 	popq	%rbp
 	ret
 
+	.set	foo.size, 0
 	.globl	foo
 
 main:
 	pushq	%rbp
 	movq	%rsp, %rbp
-	subq	$0, %rsp
+	movl	$main.size, %eax
+	subq	%rax, %rsp
 
 	movl	$65, %r15d
 	movl	%r15d, x
@@ -48,6 +51,7 @@ main:
 	popq	%rbp
 	ret
 
+	.set	main.size, 16
 	.globl	main
 
 	.comm	x, 4
